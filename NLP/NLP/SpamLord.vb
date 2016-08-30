@@ -1,6 +1,7 @@
 ﻿Imports System.Text.RegularExpressions
-Imports Microsoft.VisualBasic.Language.Python
 Imports Microsoft.VisualBasic
+Imports Microsoft.VisualBasic.Language
+Imports Microsoft.VisualBasic.Language.Python
 
 ''' <summary>
 ''' 
@@ -54,36 +55,47 @@ Public Class SpamLord
         \D+              # should have at least one non digit character at the end
 "
 
-    Public Function process_file(name As String, f As IEnumerable(Of String)) As String()
+    Public Function process_file(name As String, f As IEnumerable(Of String)) As List(Of Tuple(Of String, String, String))
         ' note that debug info should be printed To stderr
         ' sys.stderr.write('[process_file]\tprocessing file: %s\n' % (path))
-        Dim Res As New List(Of String)
+        Dim res As New List(Of Tuple(Of String, String, String))
+
         For Each line As String In f
             ' match email
             Dim matches = Regexp.FindAll(my_email_pattern, line, RegexICSng)
-            For Each m As String In matches
+
+            For Each m As String() In matches
                 Dim email = ""
-                If Len(m.Last [-1])!= 0 Then
-                    email = '%s@%s' % (m[-1], m[-2])
-            Else
-    If m(1) = "Server" Then
+
+                If Len(m.Last(1)) <> 0 Then
+                    email = "%s@%s" <= {m.Last(-1), m.Last(-2)}.xFormat
+                Else
+                    If m(1) = "Server" Then
                         ' skip "server at" sentence
                         Continue For
-                        email = '%s@%s.%s' % (m[1].replace("-", ""), 
-                                              m[6].replace(";", ".")
-                                          .replace(" dot ", ".")
-                    .replace("-", "")
-                    .replace(" ", "."), 
-                                      m[-4].replace("-", ""))
-            Res.Append((name,'e',email))
-Next
+                    End If
+
+                    email = "%s@%s.%s" <= {
+                        m(1).Replace("-", ""),
+                        m(6).Replace(";", ".") _
+                            .Replace(" dot ", ".") _
+                            .Replace("-", "") _
+                            .Replace(" ", "."),
+                        m(-4).Replace("-", "")}.xFormat
+                End If
+
+                res += New Tuple(Of String, String, String)(name, "e", email)
+            Next
+
             ' match phone number
             matches = Regexp.FindAll(my_phone_pattern, line)
+
             For Each m In matches
-                phone = '%s-%s-%s' % m
-            Res.Append((name, 'p', phone))
+                Dim phone = "%s-%s-%s" <= {m}.xFormat
+                res += New Tuple(Of String, String, String)(name, "p", phone)
             Next
         Next
-            Return Res
-End Function
+
+        Return res
+    End Function
 End Class
