@@ -61,14 +61,14 @@ Public Class SpamLord
         ' sys.stderr.write('[process_file]\tprocessing file: %s\n' % (path))
         Dim res As New List(Of (name As String, Type As Char, Value As String))
 
-        For Each line As String In f
+        For Each line$ In f
             ' match email
-            Dim matches = Regexp.FindAll(my_email_pattern, line, RegexICSng)
+            Dim matches = re.FindAll(my_email_pattern, line, RegexICSng)
 
-            For Each m As String In matches
+            For Each m As re.Match In matches
                 Dim email = ""
 
-                If Len(m.Last(1)) <> 0 Then
+                If Len(m(-1)) <> 0 Then
                     email = "%s@%s" <= {m(-1), m(-2)}.xFormat
                 Else
                     ' skip "server at" sentence
@@ -89,10 +89,10 @@ Public Class SpamLord
             Next
 
             ' match phone number
-            matches = Regexp.FindAll(my_phone_pattern, line)
+            matches = re.FindAll(my_phone_pattern, line)
 
             For Each m In matches
-                Dim phone = "%s-%s-%s" <= {m}.xFormat
+                Dim phone = "%s-%s-%s" <= {m.ToString}.xFormat
                 res += (name, "p"c, phone)
             Next
         Next
