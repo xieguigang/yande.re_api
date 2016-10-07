@@ -25,7 +25,7 @@ Imports Microsoft.VisualBasic.Language.UnixBash
 ''' (Fedora) Server at cs.stanford.edu Port 80                                                     
 ''' ```
 ''' </remarks>
-Public Class SpamLord
+Public Module SpamLord
 
     ''' <summary>
     ''' pattern for email
@@ -109,7 +109,6 @@ Public Class SpamLord
     Function process_dir(data_path$) As (name As String, Type As Char, Value As String)()
         ' get candidates
         Dim guess_list As New List(Of (name As String, Type As Char, Value As String))
-        Dim path$
         Dim f As IEnumerable(Of String)
         Dim f_guesses As IEnumerable(Of (name As String, Type As Char, Value As String))
 
@@ -117,12 +116,11 @@ Public Class SpamLord
             If fname(0) = "."c Then _
                 Continue For
 
-            path = data_path & "/" & fname
-            f = path.IterateAllLines
+            f = fname.IterateAllLines
             f_guesses = process_file(fname, f)
             guess_list += f_guesses
         Next
 
         Return guess_list
     End Function
-End Class
+End Module
