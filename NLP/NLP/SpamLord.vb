@@ -2,6 +2,7 @@
 Imports Microsoft.VisualBasic
 Imports Microsoft.VisualBasic.Language
 Imports Microsoft.VisualBasic.Language.Python
+Imports Microsoft.VisualBasic.Language.UnixBash
 
 ''' <summary>
 ''' 
@@ -55,25 +56,25 @@ Public Class SpamLord
         \D+              # should have at least one non digit character at the end
 "
 
-    Public Function process_file(name As String, f As IEnumerable(Of String)) As List(Of Tuple(Of String, String, String))
+    Public Function process_file(name$, f As IEnumerable(Of String)) As List(Of (name As String, Type As Char, Value As String))
         ' note that debug info should be printed To stderr
         ' sys.stderr.write('[process_file]\tprocessing file: %s\n' % (path))
-        Dim res As New List(Of Tuple(Of String, String, String))
+        Dim res As New List(Of (name As String, Type As Char, Value As String))
 
         For Each line As String In f
             ' match email
             Dim matches = Regexp.FindAll(my_email_pattern, line, RegexICSng)
 
-            For Each m As String() In matches
+            For Each m As String In matches
                 Dim email = ""
 
                 If Len(m.Last(1)) <> 0 Then
-                    email = "%s@%s" <= {m.Last(-1), m.Last(-2)}.xFormat
+                    email = "%s@%s" <= {m(-1), m(-2)}.xFormat
                 Else
-                    If m(1) = "Server" Then
-                        ' skip "server at" sentence
+                    ' skip "server at" sentence
+
+                    If m(1) = "Server" Then _
                         Continue For
-                    End If
 
                     email = "%s@%s.%s" <= {
                         m(1).Replace("-", ""),
@@ -84,7 +85,7 @@ Public Class SpamLord
                         m(-4).Replace("-", "")}.xFormat
                 End If
 
-                res += New Tuple(Of String, String, String)(name, "e", email)
+                res += (name:=name, "e"c, email)
             Next
 
             ' match phone number
@@ -92,10 +93,36 @@ Public Class SpamLord
 
             For Each m In matches
                 Dim phone = "%s-%s-%s" <= {m}.xFormat
-                res += New Tuple(Of String, String, String)(name, "p", phone)
+                res += (name, "p"c, phone)
             Next
         Next
 
         Return res
+    End Function
+
+    ''' <summary>
+    ''' You should not need to edit this function, nor should you alter
+    ''' its Interface as it will be called directly by the submit script
+    ''' </summary>
+    ''' <param name="data_path$"></param>
+    ''' <returns></returns>
+    Function process_dir(data_path$) As (name As String, Type As Char, Value As String)()
+        ' get candidates
+        Dim guess_list As New List(Of (name As String, Type As Char, Value As String))
+        Dim path$
+        Dim f As IEnumerable(Of String)
+        Dim f_guesses As IEnumerable(Of (name As String, Type As Char, Value As String))
+
+        For Each fname In ls - l - r <= data_path
+            If fname(0) = "."c Then _
+                Continue For
+
+            path = data_path & "/" & fname
+            f = path.IterateAllLines
+            f_guesses = process_file(fname, f)
+            guess_list += f_guesses
+        Next
+
+        Return guess_list
     End Function
 End Class
