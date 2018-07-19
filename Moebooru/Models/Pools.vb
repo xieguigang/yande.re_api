@@ -1,3 +1,6 @@
-﻿Public Class Pools
+﻿Namespace Models
 
-End Class
+    Public Class Pools
+
+    End Class
+End Namespace

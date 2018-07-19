@@ -1,24 +1,27 @@
 ﻿Imports System.Xml.Serialization
 Imports Microsoft.VisualBasic.ApplicationServices.Debugging
 
-Public Class Posts
+Namespace Models
 
-    <XmlAttribute> Public Property count As Integer
-    <XmlAttribute> Public Property offset As Integer
+    Public Class Posts
 
-    <XmlElement("post")>
-    Public Property posts As post()
+        <XmlAttribute> Public Property count As Integer
+        <XmlAttribute> Public Property offset As Integer
 
-End Class
+        <XmlElement("post")>
+        Public Property posts As post()
 
-Public Class post : Implements IVisualStudioPreviews
+    End Class
 
-    Public ReadOnly Property Previews As String Implements IVisualStudioPreviews.Previews
-        Get
-            Return (<img src=<%= sample_url %> style="width:100%; height:100%;"/>).ToString
-        End Get
-    End Property
+    Public Class post : Implements IVisualStudioPreviews
 
-    Public Property sample_url As String
+        Public ReadOnly Property Previews As String Implements IVisualStudioPreviews.Previews
+            Get
+                Return (<img src=<%= sample_url %> style="width:100%; height:100%;"/>).ToString
+            End Get
+        End Property
 
-End Class
+        Public Property sample_url As String
+
+    End Class
+End Namespace

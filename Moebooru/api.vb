@@ -1,6 +1,7 @@
 ﻿Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports Microsoft.VisualBasic.CommandLine.Reflection
+Imports Moebooru.Models
 
 <HideModuleName> Public Module api
 
@@ -36,6 +37,7 @@ Imports Microsoft.VisualBasic.CommandLine.Reflection
     <ExportAPI("post.xml")>
     Public Function Posts(Optional limit% = -1, Optional page% = -1, Optional tags As IEnumerable(Of String) = Nothing) As Posts
         Dim url$ = getURL()
-
+        Dim out = url.GET.LoadXml(Of Posts)
+        Return out
     End Function
 End Module
