@@ -15,7 +15,7 @@ Imports Moebooru.Models
 
     Sub New()
         apis = GetType(api) _
-            .GetMethods(BindingFlags.Public) _
+            .GetMethods(BindingFlags.Public Or BindingFlags.Static) _
             .Where(Function(m)
                        Return Not m.GetCustomAttribute(Of ExportAPIAttribute) Is Nothing
                    End Function) _
@@ -37,7 +37,7 @@ Imports Moebooru.Models
     <ExportAPI("post.xml")>
     Public Function Posts(Optional limit% = -1, Optional page% = -1, Optional tags As IEnumerable(Of String) = Nothing) As Posts
         Dim url$ = getURL()
-        Dim out = url.GET.LoadXml(Of Posts)
+        Dim out = url.GET.LoadFromXml(Of Posts)
         Return out
     End Function
 End Module
