@@ -1,6 +1,8 @@
 ﻿Imports System.Reflection
 Imports System.Runtime.CompilerServices
+Imports System.Threading
 Imports Microsoft.VisualBasic.CommandLine.Reflection
+Imports Microsoft.VisualBasic.Terminal.ProgressBar
 Imports Moebooru.Models
 
 <HideModuleName> Public Module api
@@ -39,5 +41,35 @@ Imports Moebooru.Models
         Dim url$ = getURL()
         Dim out = url.GET.LoadFromXml(Of Posts)
         Return out
+    End Function
+
+    <ExportAPI("pool/show.xml")>
+    Public Function PoolShow(id As String) As Pool
+        Dim url$ = getURL() & $"?id={id}"
+        Dim out = url.GET.LoadFromXml(Of Pool)
+        Return out
+    End Function
+
+    Public Iterator Function DownloadPool(id$, EXPORT$) As IEnumerable(Of (file$, success As Boolean))
+        Dim pool As Pool = api.PoolShow(id)
+
+        Using progressBar As New ProgressBar("Download pool images...")
+            Dim task As New ProgressProvider(total:=pool.posts.Length)
+            Dim msg$
+
+            For Each post As post In pool.posts
+                Dim url$ = post.file_url
+                Dim save$ = $"{EXPORT}/{post.id}.{url.ExtensionSuffix}"
+
+                msg = $" ==> {url} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
+
+                Call Thread.Sleep(10 * 1000)
+                Call progressBar.SetProgress(task.StepProgress, msg)
+
+                Yield (url, url.DownloadFile(save,))
+            Next
+        End Using
+
+        Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
     End Function
 End Module

@@ -22,7 +22,7 @@ Namespace Models
         End Property
 
         <XmlAttribute> Public Property id As String
-        <XmlAttribute> Public Property tags As String
+        <XmlAttribute> Public Property tags As String()
         <XmlAttribute> Public Property created_at As String
         <XmlAttribute> Public Property updated_at As String
         <XmlAttribute> Public Property creator_id As String
