@@ -2,6 +2,7 @@
 Imports System.Runtime.CompilerServices
 Imports System.Threading
 Imports Microsoft.VisualBasic.CommandLine.Reflection
+Imports Microsoft.VisualBasic.Language
 Imports Microsoft.VisualBasic.Terminal.ProgressBar
 Imports Moebooru.Models
 
@@ -71,5 +72,26 @@ Imports Moebooru.Models
         End Using
 
         Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
+    End Function
+
+    ''' <summary>
+    ''' 返回缺失的post编号
+    ''' </summary>
+    ''' <param name="directory"></param>
+    ''' <returns></returns>
+    Public Function CheckPoolIntegrity(directory As String) As Integer()
+        Dim index As Pool = $"{directory}/index.xml".LoadXml(Of Pool)
+        Dim missing As New List(Of Integer)
+
+        For Each post In index.posts
+            Dim file$ = $"{directory}/{post.id}.{post.file_url.ExtensionSuffix}"
+            Dim test = file.FileLength > 0
+
+            If Not test = True Then
+                missing += post.id
+            End If
+        Next
+
+        Return missing
     End Function
 End Module

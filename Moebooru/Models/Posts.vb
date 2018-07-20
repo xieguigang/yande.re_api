@@ -21,7 +21,7 @@ Namespace Models
             End Get
         End Property
 
-        <XmlAttribute> Public Property id As String
+        <XmlAttribute> Public Property id As Integer
         <XmlAttribute> Public Property tags As String()
         <XmlAttribute> Public Property created_at As String
         <XmlAttribute> Public Property updated_at As String
