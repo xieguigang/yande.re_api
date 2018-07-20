@@ -17,7 +17,7 @@ Namespace Models
 
         Private ReadOnly Property Previews As String Implements IVisualStudioPreviews.Previews
             Get
-                Return (<img src=<%= preview_url %> style="width:100%; height:100%;"/>).ToString
+                Return (<img src=<%= preview_url %> style="width:100%;"/>).ToString
             End Get
         End Property
 
