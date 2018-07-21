@@ -1,6 +1,7 @@
 ﻿Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Threading
+Imports Microsoft.VisualBasic.ApplicationServices
 Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Language
 Imports Microsoft.VisualBasic.Terminal.ProgressBar
@@ -72,6 +73,7 @@ Imports Moebooru.Models
         End Using
 
         Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
+        Call GZip.DirectoryArchive(EXPORT, $"{EXPORT.ParentPath}/{pool.name.NormalizePathString(False)}.zip")
     End Function
 
     ''' <summary>
