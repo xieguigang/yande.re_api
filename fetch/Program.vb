@@ -27,6 +27,11 @@ Module Program
                 End With
             End If
 
+            Call pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+                            .Where(Function(task) task.Value = "0") _
+                            .ToDictionary _
+                            .GetJson(indent:=True) _
+                            .__INFO_ECHO
             Return
         End If
 re0:
