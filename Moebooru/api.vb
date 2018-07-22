@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 Imports System.Threading
 Imports Microsoft.VisualBasic.ApplicationServices
 Imports Microsoft.VisualBasic.CommandLine.Reflection
+Imports Microsoft.VisualBasic.Imaging
 Imports Microsoft.VisualBasic.Language
 Imports Microsoft.VisualBasic.Terminal.ProgressBar
 Imports Moebooru.Models
@@ -63,12 +64,16 @@ Imports Moebooru.Models
                 Dim url$ = post.file_url
                 Dim save$ = $"{EXPORT}/{post.id}.{url.ExtensionSuffix}"
 
-                msg = $" ==> {url} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
+                msg = $" ==> {url.BaseName} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
 
                 Call Thread.Sleep(10 * 1000)
                 Call progressBar.SetProgress(task.StepProgress, msg)
 
-                Yield (url, url.DownloadFile(save,))
+                If Not save.FileExists OrElse save.LoadImage(throwEx:=False) Is Nothing Then
+                    Yield (url, url.DownloadFile(save,))
+                Else
+                    Yield (url, True)
+                End If
             Next
         End Using
 

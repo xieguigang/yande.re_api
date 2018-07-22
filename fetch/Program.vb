@@ -27,7 +27,8 @@ re0:
         Call Moebooru.CheckPoolIntegrity(EXPORT) _
                      .GetJson _
                      .PrintException
-        Call Program.save(pool_id, 1)
+
+        Call save(pool_id, 1)
 
         If pendingTask.FileExists Then
             pool_id = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
