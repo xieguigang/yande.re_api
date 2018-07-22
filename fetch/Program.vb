@@ -8,6 +8,8 @@ Module Program
         Dim pool_id$ = App.CommandLine.Name
         Dim EXPORT$ = App.CommandLine("/export") Or $"./{pool_id}/"
 
+        Call pendingTask.__DEBUG_ECHO
+
         If pool_id.StringEmpty Then
             Call Console.WriteLine("Usage: fetch <pool_id> [/export <directory>]")
             Return
@@ -23,6 +25,7 @@ Module Program
             Return
         End If
 re0:
+        Call $" => {pool_id}".Warning
         Call Moebooru.DownloadPool(pool_id, EXPORT).ToArray
         Call Moebooru.CheckPoolIntegrity(EXPORT) _
                      .GetJson _
