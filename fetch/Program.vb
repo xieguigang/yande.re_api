@@ -35,6 +35,7 @@ re0:
                                  .Where(Function(task) task.Value = "0") _
                                  .FirstOrDefault _
                                  .Key
+            EXPORT = $"./{pool_id}/"
 
             If Not pool_id.StringEmpty Then
                 GoTo re0
