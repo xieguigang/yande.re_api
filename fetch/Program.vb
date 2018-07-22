@@ -13,19 +13,7 @@ Module Program
             Return
         ElseIf pool_id.TextEquals("pending") Then
             pool_id = App.CommandLine.Parameters(0)
-
-            If Not pendingTask.FileExists Then
-                Call New Dictionary(Of String, String) From {
-                    {pool_id, 0}
-                }.GetJson _
-                 .SaveTo(pendingTask)
-            Else
-                With pendingTask.LoadObject(Of Dictionary(Of String, String))
-                    .Item(pool_id) = 0
-                    .GetJson _
-                    .SaveTo(pendingTask)
-                End With
-            End If
+            save(pool_id, 0)
 
             Call pendingTask.LoadObject(Of Dictionary(Of String, String)) _
                             .Where(Function(task) task.Value = "0") _
@@ -39,6 +27,7 @@ re0:
         Call Moebooru.CheckPoolIntegrity(EXPORT) _
                      .GetJson _
                      .PrintException
+        Call Program.save(pool_id, 1)
 
         If pendingTask.FileExists Then
             pool_id = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
@@ -50,5 +39,18 @@ re0:
                 GoTo re0
             End If
         End If
+    End Sub
+
+    Private Sub save(pool_id$, status$)
+        Dim data As Dictionary(Of String, String)
+
+        If Not pendingTask.FileExists Then
+            data = New Dictionary(Of String, String)
+        Else
+            data = pendingTask.LoadObject(Of Dictionary(Of String, String))
+        End If
+
+        data(pool_id) = status
+        data.GetJson.SaveTo(pendingTask)
     End Sub
 End Module
