@@ -1,4 +1,5 @@
-﻿Imports System.Reflection
+﻿Imports System.IO.Compression
+Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Threading
 Imports Microsoft.VisualBasic.ApplicationServices
@@ -78,7 +79,11 @@ Imports Moebooru.Models
         End Using
 
         Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
-        Call GZip.DirectoryArchive(EXPORT, $"{EXPORT.ParentPath}/{pool.name.NormalizePathString(False)}.zip")
+        Call GZip.DirectoryArchive(EXPORT, $"{EXPORT.ParentPath}/{pool.name.NormalizePathString(False)}.zip",
+                                   ArchiveAction.Replace,
+                                   Overwrite.Always,
+                                   CompressionLevel.Fastest,
+                                   True)
     End Function
 
     ''' <summary>

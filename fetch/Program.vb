@@ -1,4 +1,5 @@
-﻿Imports System.Threading
+﻿Imports System.IO.Compression
+Imports System.Threading
 Imports Microsoft.VisualBasic.ApplicationServices
 Imports Microsoft.VisualBasic.Serialization.JSON
 Imports Moebooru.Models
@@ -56,7 +57,7 @@ Module Program
                         End If
                     Next
 
-                    Call GZip.DirectoryArchive(directory, $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip")
+                    Call GZip.DirectoryArchive(directory, $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip", ArchiveAction.Replace, Overwrite.Always, CompressionLevel.Fastest, True)
                 End If
             Next
 
