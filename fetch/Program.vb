@@ -1,4 +1,5 @@
 ﻿Imports Microsoft.VisualBasic.Serialization.JSON
+Imports Moebooru.Models
 
 Module Program
 
@@ -23,6 +24,36 @@ Module Program
                             .GetJson(indent:=True) _
                             .__INFO_ECHO
             Return
+        ElseIf pool_id.TextEquals("/scan.missing") Then
+            Dim finished = pendingTask _
+                .LoadObject(Of Dictionary(Of String, String)) _
+                .Where(Function(task) task.Value <> "0") _
+                .ToArray
+
+            For Each id As String In finished.Keys
+                Dim index$ = $"./{id}/index.xml"
+
+                If Not index.FileExists Then
+                    pool_id = id
+                    EXPORT = index.ParentPath
+
+                    Call Moebooru _
+                        .DownloadPool(pool_id, EXPORT) _
+                        .ToArray
+                Else
+                    Dim pool As Pool = index.LoadXml(Of Pool)
+                    Dim directory = index.ParentPath
+
+                    For Each post In pool.posts
+                        Dim file$ = $"{directory}/{post.id}.{post.file_url.ExtensionSuffix}"
+                        Dim test = file.FileLength > 0
+
+                        If Not test = True Then
+                            Call post.file_url.DownloadFile(file,)
+                        End If
+                    Next
+                End If
+            Next
         End If
 re0:
         Call $" => {pool_id}".Warning
