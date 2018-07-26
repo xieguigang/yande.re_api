@@ -1,4 +1,6 @@
-﻿Imports Microsoft.VisualBasic.Serialization.JSON
+﻿Imports System.Threading
+Imports Microsoft.VisualBasic.ApplicationServices
+Imports Microsoft.VisualBasic.Serialization.JSON
 Imports Moebooru.Models
 
 Module Program
@@ -50,10 +52,15 @@ Module Program
 
                         If Not test = True Then
                             Call post.file_url.DownloadFile(file,)
+                            Call Thread.Sleep(10 * 1000)
                         End If
                     Next
+
+                    Call GZip.DirectoryArchive(directory, $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip")
                 End If
             Next
+
+            Return
         End If
 re0:
         Call $" => {pool_id}".Warning
