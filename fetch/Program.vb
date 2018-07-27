@@ -15,8 +15,19 @@ Module Program
         Call pendingTask.__DEBUG_ECHO
 
         If pool_id.StringEmpty Then
-            Call Console.WriteLine("Usage: fetch <pool_id> [/export <directory>]")
-            Return
+
+            pool_id = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+                .Where(Function(task) task.Value = "0") _
+                .FirstOrDefault _
+                .Key
+
+            If Not pool_id.StringEmpty Then
+                EXPORT = $"./{pool_id}/"
+            Else
+                Call Console.WriteLine("Usage: fetch <pool_id> [/export <directory>]")
+                Return
+            End If
+
         ElseIf pool_id.TextEquals("pending") Then
             pool_id = App.CommandLine.Parameters(0)
             save(pool_id, 0)
