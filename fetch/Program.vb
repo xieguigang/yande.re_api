@@ -46,6 +46,7 @@ Module Program
                 Else
                     Dim pool As Pool = index.LoadXml(Of Pool)
                     Dim directory = index.ParentPath
+                    Dim zip$ = $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip"
 
                     For Each post In pool.posts
                         Dim file$ = $"{directory}/{post.id}.{post.file_url.ExtensionSuffix}"
@@ -57,7 +58,14 @@ Module Program
                         End If
                     Next
 
-                    Call GZip.DirectoryArchive(directory, $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip", ArchiveAction.Replace, Overwrite.Always, CompressionLevel.Fastest, True)
+                    Call GZip.DirectoryArchive(
+                        directory, zip,
+                        ArchiveAction.Replace,
+                        Overwrite.Always,
+                        CompressionLevel.Fastest,
+                        True
+                    )
+                    Call zip.__INFO_ECHO
                 End If
             Next
 
