@@ -65,7 +65,7 @@ Imports Moebooru.Models
                 Dim url$ = post.file_url
                 Dim save$ = $"{EXPORT}/{post.id}.{url.ExtensionSuffix}"
 
-                msg = $" ==> {url.BaseName} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
+                msg = $" ==> {url.BaseName(allowEmpty:=True)} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
 
                 Call progressBar.SetProgress(task.StepProgress, msg)
 
