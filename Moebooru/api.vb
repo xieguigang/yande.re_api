@@ -67,11 +67,15 @@ Imports Moebooru.Models
 
                 msg = $" ==> {url.BaseName} [ETA={task.ETA(progressBar.ElapsedMilliseconds).FormatTime}]"
 
-                Call Thread.Sleep(10 * 1000)
                 Call progressBar.SetProgress(task.StepProgress, msg)
+
+                If url.StringEmpty Then
+                    Continue For
+                End If
 
                 If Not save.FileExists OrElse save.LoadImage(throwEx:=False) Is Nothing Then
                     Yield (url, url.DownloadFile(save,))
+                    Call Thread.Sleep(10 * 1000)
                 Else
                     Yield (url, True)
                 End If
