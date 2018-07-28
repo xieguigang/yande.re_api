@@ -1,10 +1,12 @@
 ﻿Imports System.IO.Compression
+Imports System.Runtime.CompilerServices
 Imports System.Threading
 Imports Microsoft.VisualBasic.ApplicationServices
 Imports Microsoft.VisualBasic.ApplicationServices.Terminal
 Imports Microsoft.VisualBasic.CommandLine
 Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Serialization.JSON
+Imports Moebooru
 Imports Moebooru.Models
 
 Module Program
@@ -34,46 +36,7 @@ Module Program
         ElseIf pool_id.TextEquals("pending") Then
 
         ElseIf pool_id.TextEquals("/scan.missing") Then
-            Dim finished = pendingTask _
-                .LoadObject(Of Dictionary(Of String, String)) _
-                .Where(Function(task) task.Value <> "0") _
-                .ToArray
 
-            For Each id As String In finished.Keys
-                Dim index$ = $"./{id}/index.xml"
-
-                If Not index.FileExists Then
-                    pool_id = id
-                    EXPORT = index.ParentPath
-
-                    Call Moebooru.Task _
-                        .DownloadPool(pool_id, EXPORT) _
-                        .ToArray
-                Else
-                    Dim pool As Pool = index.LoadXml(Of Pool)
-                    Dim directory = index.ParentPath
-                    Dim zip$ = $"{directory.ParentPath}/{pool.name.NormalizePathString(False)}.zip"
-
-                    For Each post In pool.posts
-                        Dim file$ = $"{directory}/{post.id}.{post.file_url.ExtensionSuffix}"
-                        Dim test = file.FileLength > 0
-
-                        If Not test = True Then
-                            Call post.file_url.DownloadFile(file,)
-                            Call Thread.Sleep(10 * 1000)
-                        End If
-                    Next
-
-                    Call GZip.DirectoryArchive(
-                        directory, zip,
-                        ArchiveAction.Replace,
-                        Overwrite.Always,
-                        CompressionLevel.Fastest,
-                        True
-                    )
-                    Call zip.__INFO_ECHO
-                End If
-            Next
 
             Return
         End If
@@ -101,8 +64,54 @@ re0:
 
     <ExportAPI("/scan.missing")>
     Public Function ScanMissing(args As CommandLine) As Integer
+        Dim finished = pendingTask _
+            .LoadObject(Of Dictionary(Of String, String)) _
+            .Where(Function(task) task.Value <> "0") _
+            .ToArray
 
+        For Each id As String In finished.Keys
+            Call id.checkInternal
+        Next
+
+        Return 0
     End Function
+
+    <Extension> Private Sub checkInternal(id As String)
+        Dim pool_id$, EXPORT$
+        Dim index$ = $"./{id}/index.xml"
+
+        If Not index.FileExists Then
+            pool_id = id
+            EXPORT = index.ParentPath
+
+            Call Moebooru.Task _
+                .DownloadPool(pool_id, EXPORT) _
+                .ToArray
+        Else
+            Dim pool As Pool = index.LoadXml(Of Pool)
+            Dim directory = index.ParentPath
+            Dim zip$ = $"{directory.ParentPath}/{pool.PoolZipName}"
+
+            For Each post In pool.posts
+                Dim file$ = $"{directory}/{post.id}.{post.file_url.ExtensionSuffix}"
+                Dim test = file.FileLength > 0
+
+                If Not test = True Then
+                    Call post.file_url.DownloadFile(file,)
+                    Call Thread.Sleep(10 * 1000)
+                End If
+            Next
+
+            Call GZip.DirectoryArchive(
+                directory, zip,
+                ArchiveAction.Replace,
+                Overwrite.Always,
+                CompressionLevel.Fastest,
+                True
+            )
+            Call zip.__INFO_ECHO
+        End If
+    End Sub
 
     <ExportAPI("/pending")>
     Public Function PendingTaskCLI(args As CommandLine) As Integer
@@ -114,7 +123,7 @@ re0:
                         .Select(Function(t) {t.Key, t.Value}) _
                         .AppendAfter({New String() {"pool_id", "status"}}) _
                         .ToArray _
-                        .Print
+                        .Print(dev:=App.StdOut)
         Return 0
     End Function
 

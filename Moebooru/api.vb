@@ -51,6 +51,12 @@ Imports Moebooru.Models
         Return out
     End Function
 
+    ''' <summary>
+    ''' 这个函数会自动跳过已经存在的文件的下载操作
+    ''' </summary>
+    ''' <param name="id$"></param>
+    ''' <param name="EXPORT$"></param>
+    ''' <returns></returns>
     Public Iterator Function DownloadPool(id$, EXPORT$) As IEnumerable(Of (file$, success As Boolean))
         Dim pool As Pool = api.PoolShow(id)
 

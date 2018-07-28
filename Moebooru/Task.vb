@@ -1,4 +1,5 @@
 ﻿Imports System.IO.Compression
+Imports System.Runtime.CompilerServices
 Imports Microsoft.VisualBasic.ApplicationServices
 Imports Microsoft.VisualBasic.Language
 Imports Moebooru.Models
@@ -26,10 +27,10 @@ Public Module Task
         Return missing
     End Function
 
-    Public Function DownloadPool(id$, EXPORT$) As IEnumerable(Of (file$, success As Boolean))
-        Dim result = api.DownloadPool(id, EXPORT)
+    Public Function DownloadPool(id$, EXPORT$) As (file$, success As Boolean)()
+        Dim result = api.DownloadPool(id, EXPORT).ToArray
         Dim pool As Pool = $"{EXPORT}/index.Xml".LoadXml(Of Pool)
-        Dim zip$ = $"{EXPORT.ParentPath}/{pool.name.NormalizePathString(False)}.zip"
+        Dim zip$ = $"{EXPORT.ParentPath}/{pool.PoolZipName}"
 
         Call GZip.DirectoryArchive(
             EXPORT, zip,
@@ -39,5 +40,10 @@ Public Module Task
             flatDirectory:=True
         )
         Return result
+    End Function
+
+    <MethodImpl(MethodImplOptions.AggressiveInlining)>
+    <Extension> Public Function PoolZipName(pool As Pool) As String
+        Return $"[{pool.id}]{pool.name.NormalizePathString(False)}.zip"
     End Function
 End Module
