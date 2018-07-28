@@ -88,6 +88,7 @@
     <Compile Include="Models\Pools.vb" />
     <Compile Include="Models\Posts.vb" />
     <Compile Include="api.vb" />
+    <Compile Include="Task.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>

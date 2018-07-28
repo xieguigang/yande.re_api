@@ -51,7 +51,7 @@ Module Program
                     pool_id = id
                     EXPORT = index.ParentPath
 
-                    Call Moebooru _
+                    Call Moebooru.Task _
                         .DownloadPool(pool_id, EXPORT) _
                         .ToArray
                 Else
@@ -84,7 +84,7 @@ Module Program
         End If
 re0:
         Call $" => {pool_id}".Warning
-        Call Moebooru.DownloadPool(pool_id, EXPORT).ToArray
+        Call Moebooru.Task.DownloadPool(pool_id, EXPORT).ToArray
         Call Moebooru.CheckPoolIntegrity(EXPORT) _
                      .GetJson _
                      .PrintException
