@@ -1,6 +1,9 @@
 ﻿Imports System.IO.Compression
 Imports System.Threading
 Imports Microsoft.VisualBasic.ApplicationServices
+Imports Microsoft.VisualBasic.ApplicationServices.Terminal
+Imports Microsoft.VisualBasic.CommandLine
+Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Serialization.JSON
 Imports Moebooru.Models
 
@@ -29,15 +32,7 @@ Module Program
             End If
 
         ElseIf pool_id.TextEquals("pending") Then
-            pool_id = App.CommandLine.Parameters(0)
-            save(pool_id, 0)
 
-            Call pendingTask.LoadObject(Of Dictionary(Of String, String)) _
-                            .Where(Function(task) task.Value = "0") _
-                            .ToDictionary _
-                            .GetJson(indent:=True) _
-                            .__INFO_ECHO
-            Return
         ElseIf pool_id.TextEquals("/scan.missing") Then
             Dim finished = pendingTask _
                 .LoadObject(Of Dictionary(Of String, String)) _
@@ -103,6 +98,25 @@ re0:
             End If
         End If
     End Sub
+
+    <ExportAPI("/scan.missing")>
+    Public Function ScanMissing(args As CommandLine) As Integer
+
+    End Function
+
+    <ExportAPI("/pending")>
+    Public Function PendingTaskCLI(args As CommandLine) As Integer
+        Dim pool_id = App.CommandLine.Parameters(0)
+
+        Call Program.save(pool_id, 0)
+        Call pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+                        .Where(Function(task) task.Value = "0") _
+                        .Select(Function(t) {t.Key, t.Value}) _
+                        .AppendAfter({New String() {"pool_id", "status"}}) _
+                        .ToArray _
+                        .Print
+        Return 0
+    End Function
 
     Private Sub save(pool_id$, status$)
         Dim data As Dictionary(Of String, String)
