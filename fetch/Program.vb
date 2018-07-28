@@ -13,35 +13,26 @@ Module Program
 
     ReadOnly pendingTask$ = App.LocalData & "/pending.json"
 
-    Sub Main()
-        Dim pool_id$ = App.CommandLine.Name
-        Dim EXPORT$ = App.CommandLine("/export") Or $"./{pool_id}/"
+    Public Function Main() As Integer
+        Return GetType(Program).RunCLI(App.CommandLine,
+            executeEmpty:=AddressOf taskResume,
+            executeNotFound:=AddressOf fetchByPoolId
+        )
+    End Function
+
+    Private Function fetchByPoolId(args As CommandLine) As Integer
+        Dim pool_id$ = args.Name
+        Dim EXPORT$ = args("/export") Or $"./{pool_id}/"
 
         Call pendingTask.__DEBUG_ECHO
+        Call pool_id.taskWorker(EXPORT)
 
-        If pool_id.StringEmpty Then
+        Return 0
+    End Function
 
-            pool_id = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
-                .Where(Function(task) task.Value = "0") _
-                .FirstOrDefault _
-                .Key
-
-            If Not pool_id.StringEmpty Then
-                EXPORT = $"./{pool_id}/"
-            Else
-                Call Console.WriteLine("Usage: fetch <pool_id> [/export <directory>]")
-                Return
-            End If
-
-        ElseIf pool_id.TextEquals("pending") Then
-
-        ElseIf pool_id.TextEquals("/scan.missing") Then
-
-
-            Return
-        End If
+    <Extension> Private Sub taskWorker(pool_id$, EXPORT$)
 re0:
-        Call $" => {pool_id}".Warning
+        Call $" => {pool_id}".__DEBUG_ECHO
         Call Moebooru.Task.DownloadPool(pool_id, EXPORT).ToArray
         Call Moebooru.CheckPoolIntegrity(EXPORT) _
                      .GetJson _
@@ -61,6 +52,25 @@ re0:
             End If
         End If
     End Sub
+
+    ''' <summary>
+    ''' Execute when cli is empty
+    ''' </summary>
+    ''' <returns></returns>
+    Private Function taskResume() As Integer
+        Dim pool_id$ = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+                                  .Where(Function(task) task.Value = "0") _
+                                  .FirstOrDefault _
+                                  .Key
+
+        If Not pool_id.StringEmpty Then
+            Call pool_id.taskWorker(EXPORT:=$"./{pool_id}/")
+        Else
+            Call Console.WriteLine("Usage: fetch <pool_id> [/export <directory>]")
+        End If
+
+        Return 0
+    End Function
 
     <ExportAPI("/scan.missing")>
     Public Function ScanMissing(args As CommandLine) As Integer
