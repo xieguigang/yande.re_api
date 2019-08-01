@@ -20,6 +20,17 @@ Module Program
         )
     End Function
 
+    <ExportAPI("/posts")>
+    <Usage("/posts /tags <tagsList, a+b+c> [/out <directory>]")>
+    Public Function DownloadPosts(args As CommandLine) As Integer
+        Dim tags$ = args <= "/tags"
+        Dim out$ = args("/out") Or $"./{tags.NormalizePathString(False)}/"
+
+        Call Task.DownloadPost(tags.Split("+"c), EXPORT:=out)
+
+        Return 0
+    End Function
+
     Private Function fetchByPoolId(args As CommandLine) As Integer
         Dim pool_id$ = args.Name
         Dim EXPORT$ = args("/export") Or $"./{pool_id}/"
