@@ -69,14 +69,22 @@ Imports Moebooru.Models
     ''' <param name="id$"></param>
     ''' <param name="EXPORT$"></param>
     ''' <returns></returns>
-    Public Iterator Function DownloadPool(id$, EXPORT$) As IEnumerable(Of (file$, success As Boolean))
+    Public Function DownloadPool(id$, EXPORT$) As IEnumerable(Of (file$, success As Boolean))
         Dim pool As Pool = api.PoolShow(id)
+        Dim result = pool.posts.DownloadPostList(EXPORT).ToArray
 
+        Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
+
+        Return result
+    End Function
+
+    <Extension>
+    Public Iterator Function DownloadPostList(posts As post(), EXPORT$) As IEnumerable(Of (file$, success As Boolean))
         Using progressBar As New ProgressBar("Download pool images...")
-            Dim task As New ProgressProvider(total:=pool.posts.Length)
+            Dim task As New ProgressProvider(total:=posts.Length)
             Dim msg$
 
-            For Each post As post In pool.posts
+            For Each post As post In posts
                 Dim url$ = post.file_url
                 Dim save$ = $"{EXPORT}/{post.id}.{url.ExtensionSuffix}"
 
@@ -96,7 +104,5 @@ Imports Moebooru.Models
                 End If
             Next
         End Using
-
-        Call pool.GetXml.SaveTo($"{EXPORT}/index.xml")
     End Function
 End Module

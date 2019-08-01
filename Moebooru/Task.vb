@@ -42,6 +42,23 @@ Public Module Task
         Return result
     End Function
 
+    <Extension>
+    Public Function DownloadPost(tags As IEnumerable(Of String), EXPORT$) As (file$, success As Boolean)()
+        Dim tagList = tags.ToArray
+        Dim page As int = Scan0
+        Dim result As New List(Of (file$, success As Boolean))
+        Dim posts As New Value(Of Posts)
+
+        Do While Not (posts = api.Posts(, ++page, tagList)).posts.IsNullOrEmpty
+            result += posts.Value _
+                .posts _
+                .DownloadPostList($"{EXPORT}/{page}/") _
+                .ToArray
+        Loop
+
+        Return result
+    End Function
+
     <MethodImpl(MethodImplOptions.AggressiveInlining)>
     <Extension> Public Function PoolZipName(pool As Pool) As String
         Return $"[{pool.id}]{pool.name.NormalizePathString(False)}.zip"
