@@ -41,7 +41,7 @@ re0:
         Call save(pool_id, 1)
 
         If pendingTask.FileExists Then
-            pool_id = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+            pool_id = pendingTask.LoadJSON(Of Dictionary(Of String, String)) _
                                  .Where(Function(task) task.Value = "0") _
                                  .FirstOrDefault _
                                  .Key
@@ -58,7 +58,7 @@ re0:
     ''' </summary>
     ''' <returns></returns>
     Private Function taskResume() As Integer
-        Dim pool_id$ = pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+        Dim pool_id$ = pendingTask.LoadJSON(Of Dictionary(Of String, String)) _
                                   .Where(Function(task) task.Value = "0") _
                                   .FirstOrDefault _
                                   .Key
@@ -75,7 +75,7 @@ re0:
     <ExportAPI("/scan.missing")>
     Public Function ScanMissing(args As CommandLine) As Integer
         Dim finished = pendingTask _
-            .LoadObject(Of Dictionary(Of String, String)) _
+            .LoadJSON(Of Dictionary(Of String, String)) _
             .Where(Function(task) task.Value <> "0") _
             .ToArray
 
@@ -112,7 +112,7 @@ re0:
                 End If
             Next
 
-            Call GZip.DirectoryArchive(
+            Call ZipLib.DirectoryArchive(
                 directory, zip,
                 ArchiveAction.Replace,
                 Overwrite.Always,
@@ -128,7 +128,7 @@ re0:
         Dim pool_id = App.CommandLine.Parameters(0)
 
         Call Program.save(pool_id, 0)
-        Call pendingTask.LoadObject(Of Dictionary(Of String, String)) _
+        Call pendingTask.LoadJSON(Of Dictionary(Of String, String)) _
                         .Where(Function(task) task.Value = "0") _
                         .Select(Function(t) {t.Key, t.Value}) _
                         .AppendAfter({New String() {"pool_id", "status"}}) _
@@ -143,7 +143,7 @@ re0:
         If Not pendingTask.FileExists Then
             data = New Dictionary(Of String, String)
         Else
-            data = pendingTask.LoadObject(Of Dictionary(Of String, String))
+            data = pendingTask.LoadJSON(Of Dictionary(Of String, String))
         End If
 
         data(pool_id) = status

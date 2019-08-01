@@ -32,7 +32,7 @@ Public Module Task
         Dim pool As Pool = $"{EXPORT}/index.Xml".LoadXml(Of Pool)
         Dim zip$ = $"{EXPORT.ParentPath}/{pool.PoolZipName}"
 
-        Call GZip.DirectoryArchive(
+        Call ZipLib.DirectoryArchive(
             EXPORT, zip,
             ArchiveAction.Replace,
             Overwrite.Always,
