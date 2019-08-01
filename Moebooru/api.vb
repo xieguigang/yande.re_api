@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 Imports System.Threading
 Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Imaging
+Imports Microsoft.VisualBasic.Linq
 Imports Microsoft.VisualBasic.Terminal.ProgressBar
 Imports Moebooru.Models
 
@@ -40,6 +41,17 @@ Imports Moebooru.Models
     <ExportAPI("post.xml")>
     Public Function Posts(Optional limit% = -1, Optional page% = -1, Optional tags As IEnumerable(Of String) = Nothing) As Posts
         Dim url$ = getURL()
+
+        With tags.SafeQuery.ToArray
+            If .Length > 0 Then
+                url = $"{url}?tags={ .JoinBy("+")}"
+            End If
+        End With
+
+        If page > 0 Then
+            url = $"{url}&page={page}"
+        End If
+
         Dim out = url.GET.LoadFromXml(Of Posts)
         Return out
     End Function
