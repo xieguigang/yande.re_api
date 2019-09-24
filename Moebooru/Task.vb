@@ -1,6 +1,6 @@
 ﻿Imports System.IO.Compression
 Imports System.Runtime.CompilerServices
-Imports Microsoft.VisualBasic.ApplicationServices
+Imports Microsoft.VisualBasic.ApplicationServices.Zip
 Imports Microsoft.VisualBasic.Language
 Imports Moebooru.Models
 
@@ -45,7 +45,7 @@ Public Module Task
     <Extension>
     Public Function DownloadPost(tags As IEnumerable(Of String), EXPORT$) As (file$, success As Boolean)()
         Dim tagList = tags.ToArray
-        Dim page As int = Scan0
+        Dim page As i32 = Scan0
         Dim result As New List(Of (file$, success As Boolean))
         Dim posts As New Value(Of Posts)
 
