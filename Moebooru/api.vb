@@ -4,6 +4,7 @@ Imports System.Threading
 Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Imaging
 Imports Microsoft.VisualBasic.Linq
+Imports Microsoft.VisualBasic.Net.Http
 Imports Microsoft.VisualBasic.Terminal.ProgressBar
 Imports Moebooru.Models
 
@@ -97,7 +98,8 @@ Imports Moebooru.Models
                 End If
 
                 If Not save.FileExists OrElse save.LoadImage(throwEx:=False) Is Nothing Then
-                    Yield (url, url.DownloadFile(save,))
+                    Yield (url, wget.Download(url, save))
+
                     Call Thread.Sleep(10 * 1000)
                 Else
                     Yield (url, True)
