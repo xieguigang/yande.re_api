@@ -81,7 +81,7 @@ Imports Moebooru.Models
 
     <Extension>
     Public Iterator Function DownloadPostList(posts As post(), EXPORT$) As IEnumerable(Of (file$, success As Boolean))
-        Using progressBar As New ProgressBar("Download pool images...")
+        Using progressBar As New ProgressBar("Download pool images...", 1, CLS:=True)
             Dim task As New ProgressProvider(total:=posts.Length)
             Dim msg$
 
