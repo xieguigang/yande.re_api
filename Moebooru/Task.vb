@@ -45,14 +45,14 @@ Public Module Task
     <Extension>
     Public Function DownloadPost(tags As IEnumerable(Of String), EXPORT$) As (file$, success As Boolean)()
         Dim tagList = tags.ToArray
-        Dim page As i32 = Scan0
+        Dim page As i32 = 1
         Dim result As New List(Of (file$, success As Boolean))
         Dim posts As New Value(Of Posts)
 
         Do While Not (posts = api.Posts(, ++page, tagList)).posts.IsNullOrEmpty
             result += posts.Value _
                 .posts _
-                .DownloadPostList($"{EXPORT}/{page}/") _
+                .DownloadPostList($"{EXPORT}/{CInt(page) - 1}/") _
                 .ToArray
         Loop
 
