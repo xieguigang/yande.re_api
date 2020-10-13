@@ -127,10 +127,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GCModeller\src\runtime\sciBASIC#\www\Microsoft.VisualBasic.NETProtocol\Microsoft.VisualBasic.Network.vbproj">
-      <Project>{a60240d1-e78b-4b96-85e3-45256571c2cb}</Project>
-      <Name>Microsoft.VisualBasic.Network</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\proxy-request\protocol\protocol.vbproj">
       <Project>{6109ff20-1e5c-4421-819a-10ad12f68b63}</Project>
       <Name>protocol</Name>
@@ -139,9 +135,21 @@
       <Project>{eeff3335-4d48-4868-967a-d89732d9248b}</Project>
       <Name>request</Name>
     </ProjectReference>
+    <ProjectReference Include="..\runtime\sciBASIC#\Data\BinaryData\BinaryData\BinaryData.vbproj">
+      <Project>{487d7c92-d05a-4908-bf81-e6baba0bf592}</Project>
+      <Name>BinaryData</Name>
+    </ProjectReference>
     <ProjectReference Include="..\runtime\sciBASIC#\Microsoft.VisualBasic.Core\47-dotnet_Microsoft.VisualBasic.vbproj">
-      <Project>{FECCE1FD-E1D4-49E3-A668-60BB5E7AED99}</Project>
+      <Project>{fecce1fd-e1d4-49e3-a668-60bb5e7aed99}</Project>
       <Name>47-dotnet_Microsoft.VisualBasic</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\runtime\sciBASIC#\mime\application%25json\application.json.vbproj">
+      <Project>{32228818-26f1-44df-8d40-347136c743cd}</Project>
+      <Name>application.json</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\runtime\sciBASIC#\www\Microsoft.VisualBasic.NETProtocol\Microsoft.VisualBasic.Network.vbproj">
+      <Project>{a60240d1-e78b-4b96-85e3-45256571c2cb}</Project>
+      <Name>Microsoft.VisualBasic.Network</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
