@@ -1,11 +1,11 @@
 ﻿Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports System.Threading
+Imports Microsoft.VisualBasic.ApplicationServices.Terminal.ProgressBar
 Imports Microsoft.VisualBasic.CommandLine.Reflection
 Imports Microsoft.VisualBasic.Imaging
 Imports Microsoft.VisualBasic.Linq
-Imports Microsoft.VisualBasic.Net.Http
-Imports Microsoft.VisualBasic.Terminal.ProgressBar
+Imports Microsoft.VisualBasic.Net.HTTP
 Imports Moebooru.Models
 
 <HideModuleName> Public Module api
@@ -13,6 +13,8 @@ Imports Moebooru.Models
     Const base$ = "https://yande.re"
 
     ReadOnly apis As Dictionary(Of String, String)
+    ReadOnly proxy As request.Proxy
+    ReadOnly httpGetText As Func(Of String, String)
 
     Private Function getURL(<CallerMemberName> Optional key$ = Nothing) As String
         Return $"{api.base}/{apis(key)}"
@@ -28,6 +30,16 @@ Imports Moebooru.Models
                           Function(m)
                               Return m.GetCustomAttribute(Of ExportAPIAttribute).Name
                           End Function)
+
+        If App.CommandLine.ContainsParameter("--proxy") Then
+            proxy = New request.Proxy(App.CommandLine <= "--proxy")
+        End If
+
+        If proxy Is Nothing Then
+            httpGetText = AddressOf HttpGet.GET
+        Else
+            httpGetText = AddressOf proxy.GetText
+        End If
     End Sub
 
     ''' <summary>
@@ -53,14 +65,14 @@ Imports Moebooru.Models
             url = $"{url}&page={page}"
         End If
 
-        Dim out = url.GET.LoadFromXml(Of Posts)
+        Dim out = httpGetText(url).LoadFromXml(Of Posts)
         Return out
     End Function
 
     <ExportAPI("pool/show.xml")>
     Public Function PoolShow(id As String) As Pool
         Dim url$ = getURL() & $"?id={id}"
-        Dim out = url.GET.LoadFromXml(Of Pool)
+        Dim out = httpGetText(url).LoadFromXml(Of Pool)
         Return out
     End Function
 
@@ -82,7 +94,7 @@ Imports Moebooru.Models
     <Extension>
     Public Iterator Function DownloadPostList(posts As post(), EXPORT$) As IEnumerable(Of (file$, success As Boolean))
         Using progressBar As New ProgressBar("Download pool images...", 1, CLS:=True)
-            Dim task As New ProgressProvider(total:=posts.Length)
+            Dim task As New ProgressProvider(progressBar, total:=posts.Length)
             Dim msg$
 
             For Each post As post In posts
