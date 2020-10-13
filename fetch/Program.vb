@@ -5,6 +5,7 @@ Imports Microsoft.VisualBasic.ApplicationServices.Terminal
 Imports Microsoft.VisualBasic.ApplicationServices.Zip
 Imports Microsoft.VisualBasic.CommandLine
 Imports Microsoft.VisualBasic.CommandLine.Reflection
+Imports Microsoft.VisualBasic.ComponentModel.Collection
 Imports Microsoft.VisualBasic.Serialization.JSON
 Imports Moebooru
 Imports Moebooru.Models
@@ -90,7 +91,7 @@ re0:
             .Where(Function(task) task.Value <> "0") _
             .ToArray
 
-        For Each id As String In finished.Keys
+        For Each id As String In finished.Select(Function(a) a.Key)
             Call id.checkInternal
         Next
 
