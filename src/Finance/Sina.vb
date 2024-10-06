@@ -12,13 +12,14 @@ Public Class Sina
         {"Referer", Referer}
     }
 
-    Public Shared Function RequestFinance(id As IEnumerable(Of String))
+    Public Shared Function RequestFinance(id As IEnumerable(Of String)) As Sina()
         Dim url As String = $"https://hq.sinajs.cn/list={id.JoinBy(",")}"
         Dim data_str As String = url.GET(headers:=headers, refer:=Referer)
 
+        Return Parse(data_str).ToArray
     End Function
 
-    Public Shared Iterator Function Parse() As IEnumerable
+    Public Shared Iterator Function Parse(data_str As String) As IEnumerable(Of Sina)
 
     End Function
 
