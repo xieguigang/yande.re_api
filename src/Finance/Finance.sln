@@ -64,8 +64,8 @@ Global
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.CFD_win32|x86.Build.0 = Debug|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x64.Build.0 = Debug|Any CPU
+		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x64.ActiveCfg = Debug|x64
+		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x64.Build.0 = Debug|x64
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Debug|x86.Build.0 = Debug|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Desktop|Any CPU.ActiveCfg = Debug|Any CPU
@@ -130,8 +130,8 @@ Global
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Release|x86.Build.0 = Release|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|Any CPU.ActiveCfg = Release|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|Any CPU.Build.0 = Release|Any CPU
-		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x64.ActiveCfg = Release|Any CPU
-		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x64.Build.0 = Release|Any CPU
+		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x64.ActiveCfg = Rsharp_app_release|x64
+		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x64.Build.0 = Rsharp_app_release|x64
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x86.ActiveCfg = Release|Any CPU
 		{3394B8A5-EC3B-468C-AEAC-1EEE9A380512}.Rsharp_app_release|x86.Build.0 = Release|Any CPU
 		{F93BE3B7-F04B-4A73-8EEC-D74267C27EA1}.CFD_win32|Any CPU.ActiveCfg = CFD_win32|Any CPU
