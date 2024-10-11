@@ -30,7 +30,7 @@ Public Class Sina
     ''' <param name="data_str"></param>
     ''' <returns></returns>
     Public Shared Iterator Function Parse(data_str As String) As IEnumerable(Of StockData)
-        Dim lines As Expression() = Expression.ParseLines(Rscript.FromText(data_str)).ToArray
+        Dim lines As Expression() = Expression.ParseLines(SMRUCC.Rsharp.Runtime.Components.Rscript.FromText(data_str)).ToArray
 
         For Each one As Expression In lines
             Dim var As DeclareNewSymbol = one
