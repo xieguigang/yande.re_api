@@ -1,3 +1,8 @@
+Imports SMRUCC.Rsharp.Interpreter.ExecuteEngine
+Imports SMRUCC.Rsharp.Interpreter.ExecuteEngine.ExpressionSymbols.Closure
+Imports SMRUCC.Rsharp.Interpreter.ExecuteEngine.ExpressionSymbols.DataSets
+Imports SMRUCC.Rsharp.Runtime.Components
+
 ''' <summary>
 ''' 
 ''' </summary>
@@ -19,8 +24,21 @@ Public Class Sina
         Return Parse(data_str).ToArray
     End Function
 
+    ''' <summary>
+    ''' parse of the sina finance data
+    ''' </summary>
+    ''' <param name="data_str"></param>
+    ''' <returns></returns>
     Public Shared Iterator Function Parse(data_str As String) As IEnumerable(Of Sina)
+        Dim lines As Expression() = Expression.ParseLines(Rscript.FromText(data_str)).ToArray
 
+        For Each one As Expression In lines
+            Dim var As DeclareNewSymbol = one
+            Dim name = var.GetSymbolName.Replace("hq_str_", "")
+            Dim vals = DirectCast(var.value, Literal).ValueStr.Split(","c)
+
+        Next
     End Function
 
 End Class
+
