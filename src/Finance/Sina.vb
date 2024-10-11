@@ -17,7 +17,7 @@ Public Class Sina
         {"Referer", Referer}
     }
 
-    Public Shared Function RequestFinance(id As IEnumerable(Of String)) As Sina()
+    Public Shared Function RequestFinance(id As IEnumerable(Of String)) As StockData()
         Dim url As String = $"https://hq.sinajs.cn/list={id.JoinBy(",")}"
         Dim data_str As String = url.GET(headers:=headers, refer:=Referer)
 
@@ -29,7 +29,7 @@ Public Class Sina
     ''' </summary>
     ''' <param name="data_str"></param>
     ''' <returns></returns>
-    Public Shared Iterator Function Parse(data_str As String) As IEnumerable(Of Sina)
+    Public Shared Iterator Function Parse(data_str As String) As IEnumerable(Of StockData)
         Dim lines As Expression() = Expression.ParseLines(Rscript.FromText(data_str)).ToArray
 
         For Each one As Expression In lines
@@ -37,6 +37,7 @@ Public Class Sina
             Dim name = var.GetSymbolName.Replace("hq_str_", "")
             Dim vals = DirectCast(var.value, Literal).ValueStr.Split(","c)
 
+            Yield New StockData(name, vals(0))
         Next
     End Function
 
