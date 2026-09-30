@@ -33,7 +33,7 @@ Public Class SerializedFile
         Dim bytes = File.ReadAllBytes(path)
         Dim sf = LoadFromBytes(bytes, path)
         ' 设置基于磁盘目录的外部资源解析（查找同目录及子目录下的 .resource 文件）
-        Dim dir = Path.GetDirectoryName(Path.GetFullPath(path))
+        Dim dir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))
         sf.ExternalResolver = Function(name As String) ResolveDiskResource(dir, name)
         Return sf
     End Function
