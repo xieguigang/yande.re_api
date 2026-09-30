@@ -1,0 +1,144 @@
+﻿UnityViewer 自测报告  2026-09-30 13:59:59
+========================================
+扫描: Z:\klsdzj_4.15.1_20190428_025416_686ef
+  [诊断] assets/Android 资源包抽查：
+    OK  accessory_prefabs_acc@archer_6_11_wing 块=1 项=1 数据=218303
+    OK  accessory_prefabs_acc@archer_6_16_back_eagle 块=1 项=1 数据=215055
+    OK  accessory_prefabs_acc@archer_6_17_back 块=1 项=1 数据=141740
+    OK  accessory_prefabs_acc@archer_6_22_back 块=1 项=1 数据=200964
+    OK  accessory_prefabs_acc@archer_6_23 块=1 项=1 数据=365000
+    小计: 5/5 成功
+  来源数: 104, 资源数: 331, 耗时 4506ms
+    - globalgamemanagers.assets: 2 个资源
+    - sharedassets0.assets: 12 个资源
+    - accessory_prefabs_acc@cos_event_pa_4_wargame_2: 2 个资源
+    - accessory_prefabs_acc@cos_rockfesta: 1 个资源
+    - accessory_prefabs_acc@hunter_carol_6_25_back: 2 个资源
+    - accessory_prefabs_acc@meka_crow: 1 个资源
+    - accessory_prefabs_acc@priest_marpei: 2 个资源
+    - accessory_prefabs_acc@shadowdevil_confuse: 1 个资源
+    - accessory_prefabs_acc@warrior_kof_kyo_ceremony: 1 个资源
+    - accessory_prefabs_acc@warrior_kurenai: 1 个资源
+    - accessory_textures_event: 2 个资源
+    - accessory_textures_hero01: 1 个资源
+    - accessory_textures_hero02: 2 个资源
+    - accessory_textures_hero03: 2 个资源
+    - accessory_textures_hero04: 2 个资源
+    - accessory_textures_hero06: 3 个资源
+    - accessory_textures_hero07: 2 个资源
+    - accessory_textures_hero08: 1 个资源
+    - accessory_textures_hero09: 1 个资源
+    - accessory_textures_hero10: 2 个资源
+    - accessory_textures_hero12: 2 个资源
+    - accessory_textures_hero13: 1 个资源
+    - accessory_textures_hero14: 1 个资源
+    - accessory_textures_hero16: 2 个资源
+    - accessory_textures_hero18: 2 个资源
+    - accessory_textures_limited: 1 个资源
+    - accessory_textures_limited_fourth: 1 个资源
+    - accessory_textures_limited_gg: 1 个资源
+    - accessory_textures_npc: 2 个资源
+    - bg_sunshine: 1 个资源
+    - cutscenelegacyanimclip_animrb: 1 个资源
+    - cutscenelegacyanimclip_animsoul: 9 个资源
+    - cutscenelegacytextures_legacy: 2 个资源
+    - cutscenelegacytextures_s2_ep1: 1 个资源
+    - cutscenelegacytextures_topdish: 1 个资源
+    - cutscene_resource_book_004: 33 个资源
+    - cutscene_resource_book_005: 27 个资源
+    - cutscene_resource_book_007: 33 个资源
+    - cutscene_resource_book_008_01: 44 个资源
+    - cutscene_resource_book_008_02: 1 个资源
+    - cutscene_resource_herogacha: 23 个资源
+    - screenpattern_raid2_resource: 2 个资源
+    - sfx_sync: 1 个资源
+    - skillprefabs_archer_archer_arrowrain: 1 个资源
+    - skillprefabs_chapter3_rat_ruderat: 1 个资源
+    - skillprefabs_chapter4_poltergeistbookroom: 1 个资源
+    - skillprefabs_common_attackup: 1 个资源
+    - skillprefabs_common_barrier_skill: 2 个资源
+    - skillprefabs_common_bufflightning: 1 个资源
+    - skillprefabs_common_continue: 2 个资源
+    - skillprefabs_common_shieldfx: 1 个资源
+    - skillprefabs_common_skillmagic: 1 个资源
+    - skillprefabs_common_spark: 1 个资源
+    - skillprefabs_ep5_ep5_blizzard: 2 个资源
+    - skillprefabs_paladin_paladin_alexander: 2 个资源
+    - skillprefabs_paladin_paladin_smash: 1 个资源
+    - skillprefabs_priest_priest_charm: 1 个资源
+    - skillprefabs_priest_priest_ninetail: 1 个资源
+    - skillprefabs_priest_priest_quaketotem: 2 个资源
+    - skillprefabs_s2_ep1_raid_common: 2 个资源
+    - skillprefabs_s2_ep2_raid_bjorn: 2 个资源
+    - skillprefabs_warrior_warrior_christmastree: 2 个资源
+    - skin_mon_chapter2: 1 个资源
+    - skin_mon_deemo: 1 个资源
+    - skin_mon_dungeon: 1 个资源
+    - skin_mon_ep1: 3 个资源
+    - skin_mon_ep2: 2 个资源
+    - skin_mon_ep3: 1 个资源
+    - skin_mon_ep4: 2 个资源
+    - skin_mon_ep6: 2 个资源
+    - skin_mon_ep7: 2 个资源
+    - skin_mon_intro: 1 个资源
+    - skin_mon_kurenai: 1 个资源
+    - skin_mon_manacar: 3 个资源
+    - skin_mon_nos: 1 个资源
+    - skin_mon_rwby: 1 个资源
+    - skin_mon_s2_ep2_chapter1: 1 个资源
+    - skin_mon_s2_ep2_chapter2: 1 个资源
+    - skin_mon_soul: 1 个资源
+    - skin_mon_soul_hard: 1 个资源
+    - skin_mon_topdealer: 2 个资源
+    - skin_npc_champion: 2 个资源
+    - skin_npc_guardian: 1 个资源
+    - skin_npc_summon: 1 个资源
+    - skin_object: 2 个资源
+    - skin_pc_event: 2 个资源
+    - skin_pc_hero02: 1 个资源
+    - skin_pc_hero03: 2 个资源
+    - skin_pc_hero06: 1 个资源
+    - skin_pc_hero07: 3 个资源
+    - skin_pc_hero08: 2 个资源
+    - skin_pc_hero09: 3 个资源
+    - skin_pc_hero12: 2 个资源
+    - skin_pc_hero13: 1 个资源
+    - skin_pc_hero16: 1 个资源
+    - skin_pc_hero18: 2 个资源
+    - skin_pc_hero19: 2 个资源
+    - skin_pc_limited_dm: 1 个资源
+    - skin_pc_limited_gg: 3 个资源
+    - skin_pc_limited_kof: 2 个资源
+    - skin_pc_limited_rwby: 2 个资源
+    - spritecollection_hammercollection: 1 个资源
+    - textures_ui: 3 个资源
+    - ui_boostmode: 1 个资源
+  类别分布: Script=28  Texture=112  Shader=18  Audio=2  Animation=171  
+  抽样提取(每类≤40): 成功可视化 240, 原始回退 91, 失败 0
+    sharedassets0.assets / Shader #10: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    sharedassets0.assets / Shader #11: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    sharedassets0.assets / Shader #12: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    sharedassets0.assets / Shader #13: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    sharedassets0.assets / AudioClip #14: 音频为 FSB 压缩容器（Vorbis/FSB），已保存原始数据用于重建；完整解码需额外解码库。
+    accessory_prefabs_acc@priest_marpei / CAB-ce12dfdb1e9ed9572cc555475c22a9a0 / Shader #-8749129128636295470: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    accessory_prefabs_acc@priest_marpei / CAB-ce12dfdb1e9ed9572cc555475c22a9a0 / Shader #2290350193054178866: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    accessory_textures_event / CAB-bbe9823910d68a0cf1cb4cf0a40b7ff6 / Texture2D #4300873669577665819: 纹理格式 RFloat 暂未实现可视化解码；已保存原始数据，可用于重建。
+    accessory_textures_limited / CAB-50032bc8017cbc10da720e662d3b4b21 / Texture2D #141252884430848: 纹理对象数据过短
+    accessory_textures_limited_fourth / CAB-a72d81949a76f4b73fb27aae0bdebdb7 / Texture2D #212652420759552: 纹理对象数据过短
+    accessory_textures_limited_gg / CAB-cca0153dd3ac9afa636f78cca0d345f8 / Texture2D #281956013047808: 纹理对象数据过短
+    accessory_textures_npc / CAB-90aeb8ba26e089f4e0b6ed9c023d77e7 / Texture2D #366026089247985193: 纹理格式 RFloat 暂未实现可视化解码；已保存原始数据，可用于重建。
+    bg_sunshine / CAB-b6ca1ec148aa95411fa6d79277d11f11 / Shader #-6552542568618160585: Shader 为编译后压缩 blob，已保存原始字节用于重建。
+    cutscenelegacyanimclip_animrb / CAB-c31f68219aa57578c048345c0a7d57d8 / AnimationClip #276149217263616: 动画对象数据过短
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-8315652009266303279: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-4822719529574135574: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-3444133651807787867: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-3107638678686437053: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-1462980391500334883: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-602353280357806424: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscenelegacytextures_s2_ep1 / CAB-ca202dd90b4fd69b1b643d1b6f982b65 / Texture2D #3930874764626644309: 纹理格式 RFloat 暂未实现可视化解码；已保存原始数据，可用于重建。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-7630678155876301012: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-7150251260325791500: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-6629057322825588520: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-6446183155997426632: 部分字段解析未完成（scale 关键帧数异常）；已保存 JSON 摘要与原始 clip 数据。
+
+报告已写入: Z:\tmp\UnityViewer_selftest.txt

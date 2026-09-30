@@ -292,101 +292,149 @@ Public Module AssetExtractors
     End Function
 
     ' ============ 动画片段 ============
+    ''' <summary>
+    ''' 实测布局（Unity 5.6.4p3）：
+    ''' [名字(len+对齐)][legacy(bool)][compressed(bool)][useHQ(bool)]+对齐
+    ''' 后接各轨道组 { path(len+对齐), curve{ 关键帧(time,value,inSlope,outSlope 各float=16字节)[, pre/postInfinity] } }。
+    ''' 逐组容错解析，始终输出 JSON 摘要 + 原始 clip 字节（用于重建导入）。
+    ''' </summary>
     Private Function ExtractAnimation(entry As AssetEntry, outputDir As String) As Boolean
-        Dim r = entry.File.CreateReader(entry.Obj)
-        Dim name = SerializedFile.ReadObjectName(r)
-        entry.Name = If(name, entry.TypeName & " #" & entry.PathID)
+        Dim objBytes = entry.File.GetObjectBytes(entry.Obj)
+        If objBytes Is Nothing OrElse objBytes.Length < 8 Then
+            Return ExtractRaw(entry, outputDir, "动画对象数据过短")
+        End If
 
-        Dim legacy = r.ReadInt32()
-        Dim compressed = r.ReadInt32()
-        Dim useHQ = r.ReadBoolean()
+        Dim pos As Integer = 0
+        Dim name = ReadLenString(objBytes, pos)
+        entry.Name = If(name <> "", name, "AnimationClip #" & entry.PathID)
 
-        Dim rotCount = r.ReadInt32()
-        Dim rotTracks As New List(Of String)()
-        For i = 0 To rotCount - 1
-            Dim p = r.ReadPPtr()
-            rotTracks.Add("rot#" & p.PathID)
-            SkipAnimationCurve(r)
-        Next
-        Dim cRotCount = r.ReadInt32()
-        For i = 0 To cRotCount - 1
-            r.ReadPPtr() : SkipCompressedAnimationCurve(r)
-        Next
-        Dim eulerCount = r.ReadInt32()
-        For i = 0 To eulerCount - 1
-            r.ReadPPtr() : SkipAnimationCurve(r)
-        Next
-        Dim posCount = r.ReadInt32()
-        Dim posTracks As New List(Of String)()
-        For i = 0 To posCount - 1
-            Dim p = r.ReadPPtr()
-            posTracks.Add("pos#" & p.PathID)
-            SkipAnimationCurve(r)
-        Next
-        Dim scaleCount = r.ReadInt32()
-        For i = 0 To scaleCount - 1
-            r.ReadPPtr() : SkipAnimationCurve(r)
-        Next
-        Dim floatCount = r.ReadInt32()
-        For i = 0 To floatCount - 1
-            r.ReadPPtr() : SkipAnimationCurve(r)
-        Next
-        Dim pptrCount = r.ReadInt32()
-        For i = 0 To pptrCount - 1
-            r.ReadPPtr() : SkipAnimationCurve(r)
-        Next
+        Dim legacy = False, compressed = False
+        Dim rotCount = 0, eulerCount = 0, posCount = 0, scaleCount = 0, floatCount = 0, pptrCount = 0
+        Dim sampleRate As Single = 0
+        Dim tracks As New List(Of String)()
+        Dim parseError As String = ""
 
-        Dim sampleRate = r.ReadSingle()
-        Dim wrapMode = r.ReadInt32()
-        ' AABB / Bounds (6 floats)
-        r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle()
-        ' MuscleClips
-        Dim muscleCount = r.ReadInt32()
-        Dim duration = 0.0F
-        For i = 0 To muscleCount - 1
-            ' MuscleClip: m_ClipBlobSize + blob + m_StartFrame + m_StopFrame + m_Clip(duration, sampleRate, events...)
-            Dim blobSize = r.ReadInt32()
-            Dim blob = r.ReadBytes(blobSize)
-            r.ReadSingle() ' startFrame
-            r.ReadSingle() ' stopFrame
-            duration = r.ReadSingle() ' m_Duration
-            r.ReadSingle() ' m_SampleRate
-            Dim evCount = r.ReadInt32()
-            For e = 0 To evCount - 1
-                r.ReadSingle() ' time
-                r.ReadAlignedString() ' functionName
-                r.ReadInt32() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle() : r.ReadSingle()
+        Try
+            If pos + 3 > objBytes.Length Then Throw New InvalidDataException("头部不完整")
+            legacy = objBytes(pos) <> 0
+            compressed = objBytes(pos + 1) <> 0
+            pos = (pos + 3 + 3) And Not 3
+
+            rotCount = ReadCurveGroup(objBytes, pos, tracks, "rot")
+            eulerCount = ReadCurveGroup(objBytes, pos, tracks, "euler")
+            posCount = ReadCurveGroup(objBytes, pos, tracks, "pos")
+            scaleCount = ReadCurveGroup(objBytes, pos, tracks, "scale")
+            floatCount = ReadFloatCurveGroup(objBytes, pos, tracks)
+
+            ' PPtrCurves: { path, curve{ 关键帧(float time + PPtr(12字节)) = 16字节, pre, post } }
+            pptrCount = ReadIntAt(objBytes, pos) : pos += 4
+            If pptrCount < 0 OrElse pptrCount > 10000 Then Throw New InvalidDataException("PPtr 轨道数异常")
+            For i = 0 To pptrCount - 1
+                If TryReadLenString(objBytes, pos) Is Nothing Then Throw New InvalidDataException("PPtr 路径")
+                SkipPPtrCurve(objBytes, pos)
             Next
-        Next
 
-        Dim info As New List(Of KeyValuePair(Of String, String)) From {
+            sampleRate = ReadFloatAt(objBytes, pos)
+        Catch ex As Exception
+            parseError = ex.Message
+            If Environment.GetEnvironmentVariable("UV_DBG") = "1" Then
+                Dim s As String = "DBG anim '" & name & "' failAt=" & pos & ": "
+                Dim d0 = Math.Max(0, pos - 40)
+                For i = d0 To Math.Min(objBytes.Length - 1, pos + 24)
+                    s &= objBytes(i).ToString("X2") & " "
+                Next
+                Console.Error.WriteLine(s)
+            End If
+        End Try
+
+        ' ---- JSON 摘要 ----
+        Dim sb As New StringBuilder()
+        sb.AppendLine("{")
+        sb.AppendLine("  ""name"": """ & JsonEscape(name) & """,")
+        sb.AppendLine("  ""legacy"": " & If(legacy, "true", "false") & ",")
+        sb.AppendLine("  ""compressed"": " & If(compressed, "true", "false") & ",")
+        sb.AppendLine("  ""sampleRate"": " & sampleRate.ToString("F2", Globalization.CultureInfo.InvariantCulture) & ",")
+        sb.AppendLine("  ""trackCounts"": { ""rotation"": " & rotCount & ", ""euler"": " & eulerCount &
+                      ", ""position"": " & posCount & ", ""scale"": " & scaleCount &
+                      ", ""float"": " & floatCount & ", ""pptr"": " & pptrCount & " },")
+        sb.AppendLine("  ""tracks"": [")
+        Dim shown = Math.Min(tracks.Count, 200)
+        For i = 0 To shown - 1
+            sb.Append("    """ & JsonEscape(tracks(i)) & """" & If(i < shown - 1, ",", "")).AppendLine()
+        Next
+        sb.AppendLine("  ]")
+        If parseError <> "" Then
+            sb.AppendLine("  ,""parseNote"": """ & JsonEscape(parseError) & """")
+        End If
+        sb.AppendLine("}")
+        Dim jsonPath = UniquePath(outputDir, "Animations", name, ".json")
+        File.WriteAllText(jsonPath, sb.ToString())
+
+        ' ---- 原始 clip 字节（用于重建导入）----
+        Dim rawPath = UniquePath(outputDir, "Animations", name & "_clip", ".animbin")
+        File.WriteAllBytes(rawPath, objBytes)
+
+        entry.PreviewText = sb.ToString()
+        entry.ExtractedPath = jsonPath
+        entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
             KV("类型", "AnimationClip"),
-            KV("时长(秒)", duration.ToString("F3")),
-            KV("采样率", sampleRate.ToString("F2")),
-            KV("WrapMode", wrapMode.ToString()),
+            KV("采样率", If(sampleRate > 0, sampleRate.ToString("F2") & " fps", "未知")),
             KV("旋转轨道", rotCount.ToString()),
             KV("位移轨道", posCount.ToString()),
             KV("缩放轨道", scaleCount.ToString()),
             KV("浮点轨道", floatCount.ToString()),
-            KV("MuscleClip", muscleCount.ToString())
+            KV("压缩", If(compressed, "是", "否"))
         }
-        entry.StructuredInfo = info
-
-        Dim sb As New StringBuilder()
-        sb.AppendLine("{" & vbCrLf)
-        sb.AppendLine("  ""name"": """ & JsonEscape(name) & """,")
-        sb.AppendLine("  ""duration"": " & duration.ToString("F3") & ",")
-        sb.AppendLine("  ""sampleRate"": " & sampleRate.ToString("F2") & ",")
-        sb.AppendLine("  ""wrapMode"": " & wrapMode & ",")
-        sb.AppendLine("  ""tracks"": { ""rotation"": " & rotCount & ", ""position"": " & posCount & ", ""scale"": " & scaleCount & ", ""float"": " & floatCount & " },")
-        sb.AppendLine("  ""compressed"": " & compressed)
-        sb.AppendLine("}")
-        Dim jsonPath = UniquePath(outputDir, "Animations", name, ".json")
-        File.WriteAllText(jsonPath, sb.ToString())
-        entry.PreviewText = sb.ToString()
-        entry.ExtractedPath = jsonPath
+        If parseError <> "" Then
+            entry.ErrorMessage = "部分字段解析未完成（" & parseError & "）；已保存 JSON 摘要与原始 clip 数据。"
+        End If
         Return True
     End Function
+
+    ''' <summary>轨道组：{ path(len+对齐), curve{ keyCount, 关键帧×16字节, pre/postInfinity } }。</summary>
+    Private Function ReadCurveGroup(bytes() As Byte, ByRef pos As Integer, tracks As List(Of String), prefix As String) As Integer
+        Dim count = ReadIntAt(bytes, pos) : pos += 4
+        If count < 0 OrElse count > 10000 Then Throw New InvalidDataException(prefix & " 轨道数异常")
+        For i = 0 To count - 1
+            Dim path = TryReadLenString(bytes, pos)
+            If path Is Nothing Then Throw New InvalidDataException(prefix & " 路径")
+            If path <> "" Then tracks.Add(prefix & ": " & path)
+            Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
+            If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException(prefix & " 关键帧数异常")
+            If pos + keyCount * 20 + 8 > bytes.Length Then Throw New InvalidDataException(prefix & " 关键帧越界")
+            pos += keyCount * 20 ' time/value/inSlope/outSlope/tangentMode
+            pos += 8             ' preInfinity + postInfinity
+        Next
+        Return count
+    End Function
+
+    ''' <summary>浮点轨道组（5.6）：{ curve{...}, path, attribute, classID, script(PPtr) }。</summary>
+    Private Function ReadFloatCurveGroup(bytes() As Byte, ByRef pos As Integer, tracks As List(Of String)) As Integer
+        Dim count = ReadIntAt(bytes, pos) : pos += 4
+        If count < 0 OrElse count > 10000 Then Throw New InvalidDataException("float 轨道数异常")
+        For i = 0 To count - 1
+            Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
+            If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException("float 关键帧数异常")
+            If pos + keyCount * 20 + 8 > bytes.Length Then Throw New InvalidDataException("float 关键帧越界")
+            pos += keyCount * 20 + 8
+            Dim path = TryReadLenString(bytes, pos)
+            Dim attr = TryReadLenString(bytes, pos)
+            If path Is Nothing OrElse attr Is Nothing Then Throw New InvalidDataException("float 路径")
+            If pos + 16 > bytes.Length Then Throw New InvalidDataException("float 轨道尾部越界")
+            pos += 4  ' classID
+            pos += 12 ' script PPtr
+            If path <> "" Then tracks.Add("float: " & path & If(attr <> "", "." & attr, ""))
+        Next
+        Return count
+    End Function
+
+    ''' <summary>PPtr 轨道曲线：{ keyCount, 关键帧×16字节(time+PPtr), pre/postInfinity }。</summary>
+    Private Sub SkipPPtrCurve(bytes() As Byte, ByRef pos As Integer)
+        Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
+        If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException("PPtr 关键帧数异常")
+        If pos + keyCount * 16 + 8 > bytes.Length Then Throw New InvalidDataException("PPtr 关键帧越界")
+        pos += keyCount * 16 + 8
+    End Sub
 
     ' ============ 音频 ============
     ''' <summary>
