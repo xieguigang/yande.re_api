@@ -64,6 +64,32 @@ Module SelfTest
             Next
         End If
 
+        ' 诊断：抽查 assets/Android 下的 UnityFS 资源包加载情况
+        Dim androidDir = Path.Combine(folder, "assets", "Android")
+        If Directory.Exists(androidDir) Then
+            Dim checkedCnt = 0, okBundle = 0
+            sb.AppendLine("  [诊断] assets/Android 资源包抽查：")
+            For Each f In Directory.EnumerateFiles(androidDir)
+                If checkedCnt >= 5 Then Exit For
+                Dim fi As New FileInfo(f)
+                If fi.Length < 100 Then Continue For
+                checkedCnt += 1
+                Try
+                    Dim bytes = File.ReadAllBytes(f)
+                    If Encoding.ASCII.GetString(bytes, 0, 7) <> "UnityFS" Then
+                        sb.AppendLine("    SKIP(非UnityFS) " & fi.Name)
+                        Continue For
+                    End If
+                    Dim bundle = UnityFSBundle.Load(bytes)
+                    okBundle += 1
+                    sb.AppendLine("    OK  " & fi.Name & " 块=" & bundle.Blocks.Count & " 项=" & bundle.Entries.Count & " 数据=" & If(bundle.ArchiveData IsNot Nothing, bundle.ArchiveData.Length, 0))
+                Catch ex As Exception
+                    sb.AppendLine("    ERR " & fi.Name & " -> " & ex.GetType().Name & ": " & ex.Message)
+                End Try
+            Next
+            sb.AppendLine("    小计: " & okBundle & "/" & checkedCnt & " 成功")
+        End If
+
         Dim total As Integer = 0
         For Each c In catalogs : total += c.Count : Next
         sb.AppendLine(String.Format("  来源数: {0}, 资源数: {1}, 耗时 {2}ms", catalogs.Count, total, sw.ElapsedMilliseconds))

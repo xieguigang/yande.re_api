@@ -42,27 +42,63 @@ Public Module AssetExtractors
 
     ' ============ 文本 / 脚本 / Shader ============
     Private Function ExtractText(entry As AssetEntry, outputDir As String) As Boolean
-        Dim r = entry.File.CreateReader(entry.Obj)
-        Dim name = SerializedFile.ReadObjectName(r)
-        entry.Name = If(name, entry.TypeName & " #" & entry.PathID)
-
-        Dim len = r.ReadInt32()
-        If len < 0 OrElse len > r.BaseStream.Length - r.Position Then len = CInt(r.BaseStream.Length - r.Position)
-        Dim bytes = r.ReadBytes(len)
-
-        Dim ext As String
-        If entry.ClassID = ClassID_Shader Then
-            ext = ".shader"
-        ElseIf entry.ClassID = ClassID_MonoScript Then
-            ext = ".cs"
-        Else
-            ext = DetectTextExtension(name)
+        Dim objBytes = entry.File.GetObjectBytes(entry.Obj)
+        If objBytes Is Nothing OrElse objBytes.Length < 4 Then
+            Return ExtractRaw(entry, outputDir, "对象数据过短")
         End If
-        Dim outPath = UniquePath(outputDir, CategoryFolder(entry.Category), name, ext)
-        File.WriteAllBytes(outPath, bytes)
+
+        Dim pos As Integer = 0
+        Dim name = ReadLenString(objBytes, pos)
+        entry.Name = If(name <> "", name, entry.TypeName & " #" & entry.PathID)
+
+        ' MonoScript: 名字后为 [assemblyName][namespace][className] 三个长度前缀字符串
+        If entry.ClassID = ClassID_MonoScript Then
+            Dim sb As New System.Text.StringBuilder()
+            sb.AppendLine("// MonoScript（程序集信息，用于重建脚本引用）")
+            Dim fields = {"Assembly", "Namespace", "Class"}
+            For Each f In fields
+                Dim s = TryReadLenString(objBytes, pos)
+                sb.AppendLine("// " & f & ": " & If(s, "(未能解析)"))
+            Next
+            Dim outPath = UniquePath(outputDir, CategoryFolder(entry.Category), name, ".cs.txt")
+            File.WriteAllText(outPath, sb.ToString())
+            entry.PreviewText = sb.ToString()
+            entry.ExtractedPath = outPath
+            entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
+                KV("类型", "MonoScript"), KV("字节数", objBytes.Length.ToString())
+            }
+            Return True
+        End If
+
+        ' Shader: 压缩 blob，无法直接解码，保存原始字节
+        If entry.ClassID = ClassID_Shader Then
+            Dim rawPath = UniquePath(outputDir, CategoryFolder(entry.Category), name, ".shader.bin")
+            File.WriteAllBytes(rawPath, objBytes)
+            entry.ExtractedPath = rawPath
+            entry.WasRawFallback = True
+            entry.ErrorMessage = "Shader 为编译后压缩 blob，已保存原始字节用于重建。"
+            entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
+                KV("类型", "Shader"), KV("字节数", objBytes.Length.ToString())
+            }
+            Return True
+        End If
+
+        ' TextAsset: [名字][int len][文本字节]
+        Dim len = ReadIntAt(objBytes, pos)
+        Dim dataStart = pos + 4
+        If len < 0 OrElse dataStart + len > objBytes.Length Then
+            len = objBytes.Length - dataStart
+            If len < 0 Then len = 0
+        End If
+        Dim bytes(len - 1) As Byte
+        If len > 0 Then Array.Copy(objBytes, dataStart, bytes, 0, len)
+
+        Dim ext = DetectTextExtension(name)
+        Dim outPath2 = UniquePath(outputDir, CategoryFolder(entry.Category), name, ext)
+        File.WriteAllBytes(outPath2, bytes)
 
         entry.PreviewText = TryDecodeText(bytes)
-        entry.ExtractedPath = outPath
+        entry.ExtractedPath = outPath2
         entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
             KV("类型", entry.TypeName),
             KV("字节数", bytes.Length.ToString())
@@ -71,44 +107,59 @@ Public Module AssetExtractors
     End Function
 
     ' ============ 纹理 / 贴图 ============
+    ''' <summary>
+    ''' 实测布局（Unity 5.6.4p3, TypeTree 剥离）：
+    ''' [名字(len+bytes)] [width][height][completeImageSize][format][mipCount]
+    ''' [bool][bool+对齐][imageCount][dimension][GL设置6项]
+    ''' [dataSize][数据][m_Source(len+bytes)][m_Offset(long)]（内联时）
+    ''' 数据与外置资源通过扫描定位，避免对中间字段布局的脆弱依赖。
+    ''' </summary>
     Private Function ExtractTexture(entry As AssetEntry, outputDir As String) As Boolean
-        Dim r = entry.File.CreateReader(entry.Obj)
-        Dim name = SerializedFile.ReadObjectName(r)
-        entry.Name = If(name, entry.TypeName & " #" & entry.PathID)
-
-        Dim forced = r.ReadInt32()
-        Dim downscale = r.ReadBoolean()
-        Dim width = r.ReadInt32()
-        Dim height = r.ReadInt32()
-        Dim completeImageSize = r.ReadInt32()
-        Dim texFormat = r.ReadInt32()
-        Dim mipCount = r.ReadInt32()
-
-        ' StreamedResource: m_Source(string) + m_Offset(int64) + m_Size(int64)
-        Dim source = r.ReadAlignedString()
-        Dim resOffset = r.ReadInt64()
-        Dim resSize = r.ReadInt64()
-
-        Dim colorSpace = r.ReadInt32()
-        Dim imageCount = r.ReadInt32()
-        Dim texDim = r.ReadInt32()
-
-        ' GLTextureSettings (7 字段)
-        r.ReadInt32() : r.ReadInt32() : r.ReadSingle() : r.ReadInt32() : r.ReadInt32() : r.ReadInt32() : r.ReadInt32()
-        Dim lightmapFmt = r.ReadInt32()
-        Dim colorSpace2 = r.ReadInt32()
-
-        Dim dataSize = r.ReadInt32()
-        Dim imageData = r.ReadBytes(If(dataSize > 0, dataSize, 0))
-
-        Dim pixelData = imageData
-        If source <> "" AndAlso resSize > 0 Then
-            Dim ext = entry.File.GetExternalResource(source, resOffset, CInt(resSize))
-            If ext IsNot Nothing Then pixelData = ext
+        Dim objBytes = entry.File.GetObjectBytes(entry.Obj)
+        If objBytes Is Nothing OrElse objBytes.Length < 24 Then
+            Return ExtractRaw(entry, outputDir, "纹理对象数据过短")
         End If
-        If pixelData Is Nothing OrElse pixelData.Length = 0 Then
-            pixelData = r.ReadBytes(CInt(r.BaseStream.Length - r.Position))
+
+        Dim pos As Integer = 0
+        Dim name = ReadLenString(objBytes, pos)
+        entry.Name = If(name <> "", name, entry.TypeName & " #" & entry.PathID)
+
+        If pos + 20 > objBytes.Length Then
+            Return ExtractRaw(entry, outputDir, "纹理头部不完整")
         End If
+        Dim width = ReadIntAt(objBytes, pos)
+        Dim height = ReadIntAt(objBytes, pos + 4)
+        Dim completeImageSize = ReadIntAt(objBytes, pos + 8)
+        Dim texFormat = ReadIntAt(objBytes, pos + 12)
+        Dim mipCount = ReadIntAt(objBytes, pos + 16)
+        pos += 20
+
+        Dim valid = width > 0 AndAlso height > 0 AndAlso width <= 8192 AndAlso height <= 8192 AndAlso
+                    completeImageSize >= 0 AndAlso completeImageSize <= width * height * 16
+        If Not valid Then
+            Return ExtractRaw(entry, outputDir, "纹理字段异常 " & width & "x" & height & " fmt=" & texFormat)
+        End If
+
+        Dim pixelData As Byte() = Nothing
+        Dim source As String = ""
+        Dim resOffset As Long = 0, resSize As Long = 0
+
+        ' 内联数据：从尾部向前扫描 [dataSize == completeImageSize][数据]
+        If completeImageSize > 0 Then
+            pixelData = FindSizedBlock(objBytes, pos, completeImageSize)
+        End If
+
+        ' 外置资源：扫描路径字符串 + offset/size
+        If pixelData Is Nothing Then
+            Dim path As String = Nothing, off As Long = 0, sz As Long = 0
+            If FindExternalResource(objBytes, pos, path, off, sz) Then
+                source = path : resOffset = off : resSize = sz
+                Dim ext = entry.File.GetExternalResource(source, resOffset, CInt(resSize))
+                If ext IsNot Nothing Then pixelData = ext
+            End If
+        End If
+
+        If pixelData Is Nothing Then pixelData = New Byte() {}
 
         entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
             KV("类型", entry.TypeName),
@@ -338,56 +389,88 @@ Public Module AssetExtractors
     End Function
 
     ' ============ 音频 ============
+    ''' <summary>
+    ''' 实测布局（Unity 5.6.4p3）：[名字(len+bytes)]
+    ''' [loadType][bool+对齐][channels][frequency][bits][length(float)][int][int][int]
+    ''' [m_Source(len+bytes)]（null+对齐）[m_Offset(long)][m_Size(long)]。
+    ''' 通过扫描定位外置资源路径与 offset/size，元数据扫描频率/声道。
+    ''' </summary>
     Private Function ExtractAudio(entry As AssetEntry, outputDir As String) As Boolean
-        Dim r = entry.File.CreateReader(entry.Obj)
-        Dim name = SerializedFile.ReadObjectName(r)
-        entry.Name = If(name, entry.TypeName & " #" & entry.PathID)
+        Dim objBytes = entry.File.GetObjectBytes(entry.Obj)
+        If objBytes Is Nothing OrElse objBytes.Length < 16 Then
+            Return ExtractRaw(entry, outputDir, "音频对象数据过短")
+        End If
 
-        Dim forceMono = r.ReadInt32()
-        Dim compression = r.ReadInt32()
-        Dim loadType = r.ReadInt32()
-        Dim quality = r.ReadInt32()
-        Dim frequency = r.ReadInt32()
-        Dim channels = r.ReadInt32()
-        Dim lengthMs = r.ReadInt32()
-        Dim chunkCount = r.ReadInt32()
-        Dim chunkSize = r.ReadInt32()
+        Dim pos As Integer = 0
+        Dim name = ReadLenString(objBytes, pos)
+        entry.Name = If(name <> "", name, entry.TypeName & " #" & entry.PathID)
 
-        ' StreamedResource
-        Dim source = r.ReadAlignedString()
-        Dim resOffset = r.ReadInt64()
-        Dim resSize = r.ReadInt64()
+        ' 扫描频率（8000..192000）与其前的声道数（1..8）
+        Dim frequency = 0, channels = 0, lengthMs = 0
+        Dim scanEnd = Math.Min(objBytes.Length - 8, pos + 64)
+        Dim p = (pos + 3) And Not 3
+        Do While p <= scanEnd
+            Dim v = ReadIntAt(objBytes, p)
+            If v >= 8000 AndAlso v <= 192000 Then
+                Dim ch = If(p >= 4, ReadIntAt(objBytes, p - 4), 0)
+                If ch >= 1 AndAlso ch <= 8 Then
+                    channels = ch : frequency = v
+                    ' 时长（float 秒）通常位于频率后 8 字节
+                    If p + 12 <= objBytes.Length Then
+                        Dim secs = ReadFloatAt(objBytes, p + 8)
+                        If secs > 0 AndAlso secs < 3600 Then lengthMs = CInt(secs * 1000)
+                    End If
+                    Exit Do
+                End If
+            End If
+            p += 4
+        Loop
 
-        Dim audioDataSize = r.ReadInt32()
-        Dim audioData = r.ReadBytes(If(audioDataSize > 0, audioDataSize, 0))
-
-        Dim bytes = audioData
-        If source <> "" AndAlso resSize > 0 Then
-            Dim ext = entry.File.GetExternalResource(source, resOffset, CInt(resSize))
+        ' 外置资源（FSB 数据通常在 .resource 中）
+        Dim bytes As Byte() = Nothing
+        Dim source As String = ""
+        Dim path As String = Nothing, off As Long = 0, sz As Long = 0
+        If FindExternalResource(objBytes, pos, path, off, sz) Then
+            source = path
+            Dim ext = entry.File.GetExternalResource(source, off, CInt(sz))
             If ext IsNot Nothing Then bytes = ext
+        End If
+
+        ' 内联数据兜底：取名字之后剩余的全部字节
+        If bytes Is Nothing OrElse bytes.Length = 0 Then
+            If pos < objBytes.Length Then
+                Dim rest(objBytes.Length - pos - 1) As Byte
+                Array.Copy(objBytes, pos, rest, 0, rest.Length)
+                bytes = rest
+            Else
+                bytes = New Byte() {}
+            End If
         End If
 
         entry.StructuredInfo = New List(Of KeyValuePair(Of String, String)) From {
             KV("类型", "AudioClip"),
-            KV("格式", AudioFormatName(compression)),
-            KV("频率", frequency.ToString() & " Hz"),
-            KV("声道", channels.ToString()),
-            KV("时长(ms)", lengthMs.ToString()),
-            KV("外置资源", If(source <> "", source, "内联"))
+            KV("频率", If(frequency > 0, frequency.ToString() & " Hz", "未知")),
+            KV("声道", If(channels > 0, channels.ToString(), "未知")),
+            KV("时长(ms)", If(lengthMs > 0, lengthMs.ToString(), "未知")),
+            KV("外置资源", If(source <> "", source, "内联")),
+            KV("数据字节", bytes.Length.ToString())
         }
 
-        If compression = 0 Then
-            ' PCM：写出 WAV
+        ' 判断是否为 FSB 容器（"FSB5"/"FSB4" 魔数）或压缩数据
+        Dim isFsb = bytes.Length > 4 AndAlso bytes(0) = AscW("F"c) AndAlso bytes(1) = AscW("S"c) AndAlso bytes(2) = AscW("B"c)
+        Dim isPcm = Not isFsb AndAlso frequency > 0 AndAlso channels > 0
+
+        If isPcm Then
             Dim wavPath = UniquePath(outputDir, "Audio", name, ".wav")
             WriteWav(wavPath, bytes, frequency, channels, 16)
             entry.ExtractedPath = wavPath
         Else
-            ' 压缩（Vorbis/MP3/FSB 容器）：保存原始数据
-            Dim rawPath = UniquePath(outputDir, "Audio", name & "_" & AudioFormatName(compression), ".bin")
+            Dim extName = If(isFsb, "FSB", "RAW")
+            Dim rawPath = UniquePath(outputDir, "Audio", name & "_" & extName, If(isFsb, ".fsb", ".bin"))
             File.WriteAllBytes(rawPath, bytes)
             entry.ExtractedPath = rawPath
             entry.WasRawFallback = True
-            entry.ErrorMessage = "音频为 " & AudioFormatName(compression) & " 压缩格式（FSB/Vorbis 容器），已保存原始数据用于重建；完整解码需额外解码库。"
+            entry.ErrorMessage = "音频为 " & extName & " 压缩容器（Vorbis/FSB），已保存原始数据用于重建；完整解码需额外解码库。"
         End If
         Return True
     End Function
@@ -529,5 +612,110 @@ Public Module AssetExtractors
         Public Offset As Integer
         Public Stride As Integer
     End Structure
+
+    ' ============ 对象字节扫描辅助（实测 Unity 5.6.4p3 布局） ============
+
+    ''' <summary>
+    ''' 读取长度前缀字符串并推进 pos。实测格式（Unity 5.6.4p3）：
+    ''' [int32 len][len 字节] 之后 4 字节对齐，无 null 终止符。
+    ''' </summary>
+    Private Function ReadLenString(bytes() As Byte, ByRef pos As Integer) As String
+        Dim s = TryReadLenString(bytes, pos)
+        If s Is Nothing Then Return ""
+        Return s
+    End Function
+
+    ''' <summary>尽力读取长度前缀字符串；非法时返回 Nothing 且不推进 pos。</summary>
+    Private Function TryReadLenString(bytes() As Byte, ByRef pos As Integer) As String
+        If pos + 4 > bytes.Length Then Return Nothing
+        Dim len = ReadIntAt(bytes, pos)
+        If len < 0 OrElse len > 4096 OrElse pos + 4 + len > bytes.Length Then Return Nothing
+        Dim endPos = pos + 4 + len
+        Dim b(len - 1) As Byte
+        If len > 0 Then Array.Copy(bytes, pos + 4, b, 0, len)
+        pos = (endPos + 3) And Not 3 ' 4 字节对齐
+        If len = 0 Then Return ""
+        Return System.Text.Encoding.UTF8.GetString(b)
+    End Function
+
+    Private Function ReadIntAt(bytes() As Byte, pos As Integer) As Integer
+        If pos < 0 OrElse pos + 4 > bytes.Length Then Return 0
+        Return BitConverter.ToInt32(bytes, pos)
+    End Function
+
+    Private Function ReadLongAt(bytes() As Byte, pos As Integer) As Long
+        If pos < 0 OrElse pos + 8 > bytes.Length Then Return 0
+        Return BitConverter.ToInt64(bytes, pos)
+    End Function
+
+    Private Function ReadFloatAt(bytes() As Byte, pos As Integer) As Single
+        If pos < 0 OrElse pos + 4 > bytes.Length Then Return 0.0F
+        Return BitConverter.ToSingle(bytes, pos)
+    End Function
+
+    ''' <summary>
+    ''' 从尾部向前扫描 [int32 == dataSize][dataSize 字节] 的数据块（要求块后剩余字节很少）。
+    ''' </summary>
+    Private Function FindSizedBlock(bytes() As Byte, start As Integer, dataSize As Integer) As Byte()
+        If dataSize <= 0 Then Return Nothing
+        Dim p = (bytes.Length - 4) And Not 3
+        Do While p >= start
+            If ReadIntAt(bytes, p) = dataSize Then
+                Dim blockStart = p + 4
+                Dim blockEnd = blockStart + dataSize
+                If blockEnd <= bytes.Length AndAlso bytes.Length - blockEnd <= 64 Then
+                    Dim b(dataSize - 1) As Byte
+                    Array.Copy(bytes, blockStart, b, 0, dataSize)
+                    Return b
+                End If
+            End If
+            p -= 4
+        Loop
+        Return Nothing
+    End Function
+
+    ''' <summary>
+    ''' 扫描定位流式外部资源：[路径长度][可打印路径字符]，其后（可选 null+对齐）
+    ''' 跟随 [offset(long)][size(long)]。路径须包含 "."。
+    ''' </summary>
+    Private Function FindExternalResource(bytes() As Byte, start As Integer, ByRef source As String, ByRef offset As Long, ByRef size As Long) As Boolean
+        source = Nothing
+        offset = 0 : size = 0
+        Dim p = (start + 3) And Not 3
+        Do While p + 8 <= bytes.Length
+            Dim L = ReadIntAt(bytes, p)
+            If L >= 4 AndAlso L <= 300 AndAlso p + 4 + L <= bytes.Length Then
+                Dim okPath = True
+                For i = 0 To L - 1
+                    Dim c = bytes(p + 4 + i)
+                    If c < 32 OrElse c > 126 Then okPath = False : Exit For
+                Next
+                If okPath Then
+                    Dim path = System.Text.Encoding.ASCII.GetString(bytes, p + 4, L)
+                    If path.Contains(".") Then
+                        ' 路径串之后 4 字节对齐，随后为 [offset(long)][size(long)]
+                        Dim q = (p + 4 + L + 3) And Not 3
+                        If TryParseRes(bytes, q, offset, size) Then
+                            source = path
+                            Return True
+                        End If
+                    End If
+                End If
+            End If
+            p += 4
+        Loop
+        Return False
+    End Function
+
+    Private Function TryParseRes(bytes() As Byte, q As Integer, ByRef offset As Long, ByRef size As Long) As Boolean
+        If q + 16 > bytes.Length Then Return False
+        Dim off = ReadLongAt(bytes, q)
+        Dim sz = ReadLongAt(bytes, q + 8)
+        If off >= 0 AndAlso off < 2147483647L AndAlso sz > 0 AndAlso sz < 536870912L Then
+            offset = off : size = sz
+            Return True
+        End If
+        Return False
+    End Function
 
 End Module

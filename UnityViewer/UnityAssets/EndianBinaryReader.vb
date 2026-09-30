@@ -74,36 +74,38 @@ Public Class EndianBinaryReader
 
     Public Function ReadInt16() As Short
         Dim b = _reader.ReadBytes(2)
-        If BigEndian Then Return CShort(b(1) Or (b(0) << 8))
-        Return CShort(b(0) Or (b(1) << 8))
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToInt16(b, 0)
     End Function
 
     Public Function ReadUInt16() As UShort
-        Return CUShort(ReadInt16())
+        Dim b = _reader.ReadBytes(2)
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToUInt16(b, 0)
     End Function
 
     Public Function ReadInt32() As Integer
         Dim b = _reader.ReadBytes(4)
-        If BigEndian Then Return b(3) Or (b(2) << 8) Or (b(1) << 16) Or (b(0) << 24)
-        Return b(0) Or (b(1) << 8) Or (b(2) << 16) Or (b(3) << 24)
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToInt32(b, 0)
     End Function
 
     Public Function ReadUInt32() As UInteger
-        Return CUInt(ReadInt32())
+        Dim b = _reader.ReadBytes(4)
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToUInt32(b, 0)
     End Function
 
     Public Function ReadInt64() As Long
         Dim b = _reader.ReadBytes(8)
-        If BigEndian Then
-            Return CLng(b(7)) Or (CLng(b(6)) << 8) Or (CLng(b(5)) << 16) Or (CLng(b(4)) << 24) Or
-                   (CLng(b(3)) << 32) Or (CLng(b(2)) << 40) Or (CLng(b(1)) << 48) Or (CLng(b(0)) << 56)
-        End If
-        Return CLng(b(0)) Or (CLng(b(1)) << 8) Or (CLng(b(2)) << 16) Or (CLng(b(3)) << 24) Or
-               (CLng(b(4)) << 32) Or (CLng(b(5)) << 40) Or (CLng(b(6)) << 48) Or (CLng(b(7)) << 56)
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToInt64(b, 0)
     End Function
 
     Public Function ReadUInt64() As ULong
-        Return CULng(ReadInt64())
+        Dim b = _reader.ReadBytes(8)
+        If BigEndian Then Array.Reverse(b)
+        Return BitConverter.ToUInt64(b, 0)
     End Function
 
     Public Function ReadSingle() As Single

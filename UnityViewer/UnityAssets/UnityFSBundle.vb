@@ -5,8 +5,9 @@ Imports System.IO
 Imports System.Text
 
 ''' <summary>
-''' UnityFS 资源包解析（Unity 5.x 资源包，签名 "UnityFS"）。
-''' 资源包内的数据块经 LZ4/LZMA 压缩，解压后包含若干 SerializedFile（或其原始流）。
+''' UnityFS 资源包解析（Unity 5.x 资源包，签名 "UnityFS"，版本 6）。
+''' 头部与 BlocksInfo 均为【大端】；数据块按各自 flags 低 6 位选择 LZMA/LZ4 解压。
+''' flags 0x40 = BlocksInfo 位于文件末尾；0x80 = 数据区起始需对齐填充。
 ''' </summary>
 Public Class UnityFSBundle
 
@@ -27,69 +28,91 @@ Public Class UnityFSBundle
         bundle.Blocks = New List(Of BundleBlock)()
         bundle.Entries = New List(Of BundleEntry)()
 
-        Using ms = New MemoryStream(bytes)
-            Using r = New EndianBinaryReader(ms, bigEndian:=False)
-                Dim sig = r.ReadStringToNull()
-                If sig <> "UnityFS" Then
-                    Throw New InvalidDataException("不是 UnityFS 资源包（签名=" & sig & "）。")
-                End If
-                bundle.Version = r.ReadInt32()
-
-                ' 版本字符串（可能带长度前缀噪声），以容错方式读取用于显示
-                bundle.UnityVersion = ReadCleanString(bytes, CInt(r.Position))
-                bundle.UnityRevision = ReadCleanString(bytes, CInt(r.Position))
-            End Using
-        End Using
-
-        ' ---- 自动定位头部字段块（size / compBI / uncompBI / flags）----
-        Dim headerFieldOffset = FindHeaderFieldOffset(bytes)
-        If headerFieldOffset < 0 Then
-            Throw New InvalidDataException("无法定位 UnityFS 头部字段块。")
+        ' ---- 头部（大端）----
+        Dim pos As Integer = 0
+        Dim sig = ReadCString(bytes, pos)
+        If sig <> "UnityFS" Then
+            Throw New InvalidDataException("不是 UnityFS 资源包（签名=" & sig & "）。")
         End If
-
-        Dim size = BitConverter.ToInt64(bytes, headerFieldOffset)
-        Dim compBI = BitConverter.ToInt32(bytes, headerFieldOffset + 8)
-        Dim uncompBI = BitConverter.ToInt32(bytes, headerFieldOffset + 12)
-        bundle.Flags = BitConverter.ToInt32(bytes, headerFieldOffset + 16)
+        bundle.Version = ReadInt32BE(bytes, pos)
+        bundle.UnityVersion = ReadCString(bytes, pos)
+        bundle.UnityRevision = ReadCString(bytes, pos)
+        ReadInt64BE(bytes, pos)                       ' 包总大小
+        Dim compBI = ReadInt32BE(bytes, pos)
+        Dim uncompBI = ReadInt32BE(bytes, pos)
+        bundle.Flags = ReadInt32BE(bytes, pos)
         bundle.Compression = bundle.Flags And &H3F
 
-        ' ---- 解压 BlocksInfo（使用全局压缩方式）----
-        Dim compData(compBI - 1) As Byte
-        Array.Copy(bytes, headerFieldOffset + 20, compData, 0, compBI)
-        Dim biBytes = DecompressBlock(compData, uncompBI, bundle.Compression)
+        Dim headerEnd = pos
+        If compBI <= 0 OrElse uncompBI <= 0 OrElse headerEnd + Math.Max(compBI, 0) > bytes.Length Then
+            Throw New InvalidDataException("UnityFS 头部字段异常。")
+        End If
+
+        ' ---- 读取并解压 BlocksInfo（实测：某些 5.6 写包器虽置 0x40 位，
+        '      BlocksInfo 实际仍紧随头部；故两个位置都尝试并严格校验）----
+        Dim infoBytes As Byte() = Nothing
+        Dim dataStart As Integer = 0
+        For Each tryPos In New Integer() {headerEnd, bytes.Length - compBI}
+            If tryPos < headerEnd OrElse tryPos + compBI > bytes.Length Then Continue For
+            Dim cd(compBI - 1) As Byte
+            Array.Copy(bytes, tryPos, cd, 0, compBI)
+            Dim cand As Byte() = Nothing
+            Try
+                cand = DecompressBlock(cd, uncompBI, bundle.Compression)
+            Catch
+                Continue For
+            End Try
+            If ValidateBlocksInfo(cand, bytes.Length, headerEnd, compBI, tryPos = headerEnd) Then
+                infoBytes = cand
+                dataStart = If(tryPos = headerEnd, headerEnd + compBI, headerEnd)
+                Exit For
+            End If
+        Next
+        If infoBytes Is Nothing Then
+            Throw New InvalidDataException("无法定位/解压 UnityFS BlocksInfo。")
+        End If
 
         ' ---- 解析 BlocksInfo（大端）----
-        Using ms = New MemoryStream(biBytes)
-            Using r = New EndianBinaryReader(ms, bigEndian:=True)
-                r.ReadBytes(16) ' uncompressed data hash
-                Dim blocksCount = r.ReadInt32()
-                For i = 0 To blocksCount - 1
-                    Dim b As New BundleBlock()
-                    b.CompressedSize = r.ReadInt32()
-                    b.UncompressedSize = r.ReadInt32()
-                    b.Flags = r.ReadInt16()
-                    bundle.Blocks.Add(b)
-                Next
-                Dim dirCount = r.ReadInt32()
-                For i = 0 To dirCount - 1
-                    Dim e As New BundleEntry()
-                    e.Offset = r.ReadInt64()
-                    e.Size = r.ReadInt32()
-                    e.Flags = r.ReadInt32()
-                    e.Name = r.ReadStringToNull()
-                    bundle.Entries.Add(e)
-                Next
-            End Using
-        End Using
+        Dim bi As Integer = 0
+        bi += 16 ' 未压缩数据 hash
+        Dim blocksCount = ReadInt32BE(infoBytes, bi)
+        If blocksCount < 0 OrElse blocksCount > 100000 Then
+            Throw New InvalidDataException("数据块数量异常: " & blocksCount)
+        End If
+        For i = 0 To blocksCount - 1
+            Dim b As New BundleBlock()
+            b.CompressedSize = ReadInt32BE(infoBytes, bi)
+            b.UncompressedSize = ReadInt32BE(infoBytes, bi)
+            b.Flags = ReadInt16BE(infoBytes, bi)
+            bundle.Blocks.Add(b)
+        Next
+        Dim dirCount = ReadInt32BE(infoBytes, bi)
+        If dirCount < 0 OrElse dirCount > 100000 Then
+            Throw New InvalidDataException("目录项数量异常: " & dirCount)
+        End If
+        For i = 0 To dirCount - 1
+            Dim e As New BundleEntry()
+            e.Offset = ReadInt64BE(infoBytes, bi)
+            e.Size = ReadInt64BE(infoBytes, bi)
+            e.Flags = ReadInt32BE(infoBytes, bi)
+            e.Name = ReadCString(infoBytes, bi)
+            bundle.Entries.Add(e)
+        Next
 
-        ' ---- 解压所有数据块并拼接（块数据区从 BlocksInfo 之后顺序排布）----
-        Dim dataStart = headerFieldOffset + 20 + compBI
-        Dim pos = dataStart
+        ' ---- 解压所有数据块并拼接 ----
+        Dim dataStart = headerEnd
+        If (bundle.Flags And &H40) = 0 Then dataStart = headerEnd + compBI
+        If (bundle.Flags And &H80) <> 0 Then dataStart = (dataStart + 15) And Not 15
+
+        Dim pos2 = dataStart
         Using outMs = New MemoryStream()
             For Each b In bundle.Blocks
+                If pos2 + b.CompressedSize > bytes.Length Then
+                    Exit For
+                End If
                 Dim cb(b.CompressedSize - 1) As Byte
-                Array.Copy(bytes, pos, cb, 0, b.CompressedSize)
-                pos += b.CompressedSize
+                Array.Copy(bytes, pos2, cb, 0, b.CompressedSize)
+                pos2 += b.CompressedSize
                 Dim ub = DecompressBlock(cb, b.UncompressedSize, b.Flags)
                 outMs.Write(ub, 0, ub.Length)
             Next
@@ -98,9 +121,9 @@ Public Class UnityFSBundle
 
         ' 回填每个目录项的实际字节
         For Each e In bundle.Entries
-            If e.Offset + e.Size <= bundle.ArchiveData.Length Then
-                Dim data(e.Size - 1) As Byte
-                Array.Copy(bundle.ArchiveData, e.Offset, data, 0, e.Size)
+            If e.Offset >= 0 AndAlso e.Size > 0 AndAlso e.Offset + e.Size <= bundle.ArchiveData.Length Then
+                Dim data(CInt(e.Size) - 1) As Byte
+                Array.Copy(bundle.ArchiveData, e.Offset, data, 0, CInt(e.Size))
                 e.Data = data
             End If
         Next
@@ -108,34 +131,33 @@ Public Class UnityFSBundle
         Return bundle
     End Function
 
-    Private Shared Function FindHeaderFieldOffset(bytes() As Byte) As Integer
-        For p = 8 To Math.Min(bytes.Length - 40, 200)
-            Dim compBI = BitConverter.ToInt32(bytes, p + 8)
-            Dim uncompBI = BitConverter.ToInt32(bytes, p + 12)
-            Dim flags = BitConverter.ToInt32(bytes, p + 16)
-            If compBI <= 0 OrElse compBI >= bytes.Length Then Continue For
-            If uncompBI <= 0 OrElse uncompBI > 200000000 Then Continue For
-            If (flags And &H3F) > 4 Then Continue For
-            If compBI > uncompBI + 64 Then Continue For
-            If p + 20 + compBI > bytes.Length Then Continue For
+    ' ---- 大端原始读取 ----
+    Private Shared Function ReadInt32BE(bytes() As Byte, ByRef pos As Integer) As Integer
+        Dim v = (CInt(bytes(pos)) << 24) Or (CInt(bytes(pos + 1)) << 16) Or (CInt(bytes(pos + 2)) << 8) Or bytes(pos + 3)
+        pos += 4
+        Return v
+    End Function
 
-            Try
-                Dim cd(compBI - 1) As Byte
-                Array.Copy(bytes, p + 20, cd, 0, compBI)
-                Dim decomp = DecompressBlock(cd, uncompBI, flags)
-                If decomp.Length < 20 Then Continue For
-                ' BlocksInfo: 16 字节 hash + int32 blocksCount（大端，合理小值）
-                Dim bc = (CInt(decomp(16)) << 24) Or (CInt(decomp(17)) << 16) Or
-                         (CInt(decomp(18)) << 8) Or decomp(19)
-                If bc <= 0 OrElse bc > 2000 Then Continue For
-                If ContainsAscii(decomp, "CAB-") OrElse bc < 64 Then
-                    Return p
-                End If
-            Catch
-                ' 忽略，继续尝试
-            End Try
-        Next
-        Return -1
+    Private Shared Function ReadInt16BE(bytes() As Byte, ByRef pos As Integer) As Short
+        Dim v = CUShort((CInt(bytes(pos)) << 8) Or bytes(pos + 1))
+        pos += 2
+        Return CShort(v)
+    End Function
+
+    Private Shared Function ReadInt64BE(bytes() As Byte, ByRef pos As Integer) As Long
+        Dim hi As Long = ReadInt32BE(bytes, pos)
+        Dim lo As Long = CUInt(ReadInt32BE(bytes, pos) And &HFFFFFFFFL)
+        Return (hi << 32) Or lo
+    End Function
+
+    Private Shared Function ReadCString(bytes() As Byte, ByRef pos As Integer) As String
+        Dim start = pos
+        Do While pos < bytes.Length AndAlso bytes(pos) <> 0
+            pos += 1
+        Loop
+        Dim s = Encoding.UTF8.GetString(bytes, start, pos - start)
+        If pos < bytes.Length Then pos += 1 ' 跳过 null
+        Return s
     End Function
 
     ''' <summary>块解压：compression 取自该块/全局 flags 的低 6 位。</summary>
@@ -156,34 +178,6 @@ Public Class UnityFSBundle
             Case Else
                 Throw New InvalidDataException("不支持的块压缩方式: " & (compression And &H3F).ToString())
         End Select
-    End Function
-
-    Private Shared Function ContainsAscii(bytes() As Byte, needle As String) As Boolean
-        Dim n = Encoding.ASCII.GetBytes(needle)
-        If n.Length = 0 OrElse bytes.Length < n.Length Then Return False
-        For i = 0 To bytes.Length - n.Length
-            Dim ok = True
-            For j = 0 To n.Length - 1
-                If bytes(i + j) <> n(j) Then ok = False : Exit For
-            Next
-            If ok Then Return True
-        Next
-        Return False
-    End Function
-
-    ''' <summary>从 offset 处读取一个以 null 结尾的字符串并去掉前导不可打印字符（用于容错读取版本字符串）。</summary>
-    Private Shared Function ReadCleanString(bytes() As Byte, offset As Integer) As String
-        Dim i = offset
-        While i < bytes.Length AndAlso (bytes(i) < 32 OrElse bytes(i) > 126)
-            i += 1
-        End While
-        If i >= bytes.Length Then Return ""
-        Dim sb As New StringBuilder()
-        While i < bytes.Length AndAlso bytes(i) <> 0
-            If bytes(i) >= 32 AndAlso bytes(i) <= 126 Then sb.Append(ChrW(bytes(i)))
-            i += 1
-        End While
-        Return sb.ToString()
     End Function
 
     ''' <summary>按名称查找包内目录项（用于解析 externals 引用）。</summary>
@@ -217,7 +211,7 @@ End Class
 Public Class BundleEntry
     Public Name As String = ""
     Public Offset As Long
-    Public Size As Integer
+    Public Size As Long
     Public Flags As Integer
     Public Data As Byte()            ' 解压后回填的实际字节
 End Class
