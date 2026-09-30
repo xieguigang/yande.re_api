@@ -338,9 +338,8 @@ Public Module AssetExtractors
         Catch ex As Exception
             parseError = ex.Message
             If Environment.GetEnvironmentVariable("UV_DBG") = "1" Then
-                Dim s As String = "DBG anim '" & name & "' failAt=" & pos & ": "
-                Dim d0 = Math.Max(0, pos - 40)
-                For i = d0 To Math.Min(objBytes.Length - 1, pos + 24)
+                Dim s As String = "DBG anim '" & name & "' failAt=" & pos & " rot=" & rotCount & " euler=" & eulerCount & " pos=" & posCount & " scale=" & scaleCount & " float=" & floatCount & vbCrLf & "  HEAD: "
+                For i = 0 To Math.Min(objBytes.Length - 1, 255)
                     s &= objBytes(i).ToString("X2") & " "
                 Next
                 Console.Error.WriteLine(s)
