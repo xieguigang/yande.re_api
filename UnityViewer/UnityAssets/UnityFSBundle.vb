@@ -100,8 +100,6 @@ Public Class UnityFSBundle
         Next
 
         ' ---- 解压所有数据块并拼接 ----
-        Dim dataStart = headerEnd
-        If (bundle.Flags And &H40) = 0 Then dataStart = headerEnd + compBI
         If (bundle.Flags And &H80) <> 0 Then dataStart = (dataStart + 15) And Not 15
 
         Dim pos2 = dataStart
@@ -129,6 +127,49 @@ Public Class UnityFSBundle
         Next
 
         Return bundle
+    End Function
+
+    ''' <summary>
+    ''' 校验解压出的 BlocksInfo 是否合理：块数/目录数在范围内、块大小为正、
+    ''' 且数据区总跨度与文件大小吻合。
+    ''' </summary>
+    Private Shared Function ValidateBlocksInfo(info() As Byte, fileSize As Integer, headerEnd As Integer, compBI As Integer, infoAfterHeader As Boolean) As Boolean
+        If info Is Nothing OrElse info.Length < 16 + 8 Then Return False
+        Dim bi As Integer = 16
+        Dim blocksCount As Integer
+        Try
+            blocksCount = ReadInt32BE(info, bi)
+        Catch
+            Return False
+        End Try
+        If blocksCount < 1 OrElse blocksCount > 100000 Then Return False
+        Dim sumComp As Long = 0
+        Dim sumUncomp As Long = 0
+        For i = 0 To blocksCount - 1
+            If bi + 10 > info.Length Then Return False
+            Dim c = ReadInt32BE(info, bi)
+            Dim u = ReadInt32BE(info, bi)
+            bi += 2
+            If c <= 0 OrElse u <= 0 OrElse u > 536870912 Then Return False
+            sumComp += c
+            sumUncomp += u
+        Next
+        If bi + 4 > info.Length Then Return False
+        Dim dirCount = ReadInt32BE(info, bi)
+        If dirCount < 0 OrElse dirCount > 100000 Then Return False
+
+        ' 数据区跨度校验
+        Dim dataStart = If(infoAfterHeader, headerEnd + compBI, headerEnd)
+        Dim dataEnd = dataStart + sumComp
+        If dataEnd > fileSize + 16 Then Return False
+        If infoAfterHeader Then
+            ' BlocksInfo 紧随头部：块数据须在 BlocksInfo 之后开始
+            If dataStart + sumComp > fileSize Then Return False
+        Else
+            ' BlocksInfo 在文件末尾：块数据须恰好结束于 BlocksInfo 之前
+            If dataEnd > fileSize - compBI Then Return False
+        End If
+        Return True
     End Function
 
     ' ---- 大端原始读取 ----
