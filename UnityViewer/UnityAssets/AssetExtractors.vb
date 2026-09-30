@@ -172,11 +172,12 @@ Public Module AssetExtractors
 
         Dim rgba = TextureDecoders.DecodeToRGBA(texFormat, width, height, pixelData)
         If rgba IsNot Nothing AndAlso width > 0 AndAlso height > 0 Then
-            Dim bmp = TextureDecoders.ToBitmap(rgba, width, height)
-            entry.PreviewBitmap = bmp
             Dim pngPath = UniquePath(outputDir, "Textures", name, ".png")
-            bmp.Save(pngPath, ImageFormat.Png)
-            bmp.Dispose()
+            Using bmp = TextureDecoders.ToBitmap(rgba, width, height)
+                bmp.Save(pngPath, ImageFormat.Png)
+            End Using
+            ' 不持有 Bitmap（GDI+ 位图体积大且释放后不可再绘制）；
+            ' 预览时由 Form1 从 ExtractedPath 的 PNG 文件按需加载。
             entry.ExtractedPath = pngPath
         Else
             Dim rawPath = UniquePath(outputDir, "Textures", name & "_" & TexFormatName(texFormat).Replace(" "c, "_"c), ".bin")

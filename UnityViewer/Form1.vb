@@ -22,17 +22,50 @@ Public Class Form1
     Private outputDir As String = ""
     Private scanRunning As Boolean = False
     Private iconMap As New Dictionary(Of AssetCategory, Integer)()
+    Private previewImage As Image = Nothing
+    Private previewStream As MemoryStream = Nothing
 #End Region
 
 #Region "构造 / 初始化"
     Public Sub New()
         InitializeComponent()
         InitIcons()
+        InitMetaGrid()
         tscbFolder.Items.Add("Z:\klsdzj_4.11.1_1_20181220_141000_676167")
         tscbFolder.Items.Add("Z:\klsdzj_4.15.1_20190428_025416_686ef")
         tscbFolder.Text = tscbFolder.Items(0).ToString()
         previewDir = Path.Combine(Path.GetTempPath(), "UnityViewer", "preview")
         Directory.CreateDirectory(previewDir)
+    End Sub
+
+    ''' <summary>初始化元信息表格列（须在添加行之前建立，否则 Rows.Add 抛出无列异常）。</summary>
+    Private Sub InitMetaGrid()
+        dgvMeta.Columns.Clear()
+        Dim colKey = New DataGridViewTextBoxColumn()
+        colKey.Name = "colKey"
+        colKey.HeaderText = "属性"
+        colKey.Width = 110
+        colKey.ReadOnly = True
+        colKey.DefaultCellStyle.ForeColor = ColorTranslator.FromHtml("#AEB6C6")
+        colKey.DefaultCellStyle.BackColor = ColorTranslator.FromHtml("#272D3A")
+        Dim colValue = New DataGridViewTextBoxColumn()
+        colValue.Name = "colValue"
+        colValue.HeaderText = "值"
+        colValue.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+        colValue.ReadOnly = True
+        colValue.DefaultCellStyle.ForeColor = ColorTranslator.FromHtml("#E6EAF2")
+        colValue.DefaultCellStyle.BackColor = ColorTranslator.FromHtml("#272D3A")
+        dgvMeta.Columns.Add(colKey)
+        dgvMeta.Columns.Add(colValue)
+        dgvMeta.RowHeadersVisible = False
+        dgvMeta.BorderStyle = BorderStyle.None
+        dgvMeta.EnableHeadersVisualStyles = False
+        dgvMeta.ColumnHeadersDefaultCellStyle.BackColor = ColorTranslator.FromHtml("#1F2430")
+        dgvMeta.ColumnHeadersDefaultCellStyle.ForeColor = ColorTranslator.FromHtml("#AEB6C6")
+        dgvMeta.BackgroundColor = ColorTranslator.FromHtml("#272D3A")
+        dgvMeta.GridColor = ColorTranslator.FromHtml("#2E3545")
+        dgvMeta.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#1E88E5")
+        dgvMeta.DefaultCellStyle.SelectionForeColor = Color.White
     End Sub
 
     ''' <summary>按类别生成 16x16 图标（彩色圆角块 + 首字母）。</summary>
@@ -215,16 +248,31 @@ Public Class Form1
     End Sub
 
     Private Sub ClearPreview()
-        pbImage.Image = Nothing
+        SetPreviewImage(Nothing, Nothing)
         lblImageInfo.Text = "未选择贴图资源"
         rtbText.Text = "未选择文本资源"
         lvStruct.Items.Clear()
         dgvMeta.Rows.Clear()
     End Sub
 
+    ''' <summary>替换图片预览内容并释放旧图像及其内存流（GDI+ 要求流与图像同生命周期）。</summary>
+    Private Sub SetPreviewImage(img As Image, ms As MemoryStream)
+        If previewImage IsNot Nothing Then
+            previewImage.Dispose()
+            previewImage = Nothing
+        End If
+        If previewStream IsNot Nothing Then
+            previewStream.Dispose()
+            previewStream = Nothing
+        End If
+        previewImage = img
+        previewStream = ms
+        pbImage.Image = img
+    End Sub
+
     Private Sub ShowPreview(entry As AssetEntry)
         ' 懒加载：首次选中时解析（写入预览临时目录）
-        If entry.PreviewBitmap Is Nothing AndAlso entry.PreviewText Is Nothing AndAlso entry.StructuredInfo Is Nothing Then
+        If entry.StructuredInfo Is Nothing AndAlso entry.ExtractedPath = "" AndAlso entry.ErrorMessage = "" Then
             Try
                 AssetExtractors.Extract(entry, previewDir)
             Catch ex As Exception
@@ -232,11 +280,26 @@ Public Class Form1
             End Try
         End If
 
-        ' 图片预览
-        If entry.Category = AssetCategory.Texture AndAlso entry.PreviewBitmap IsNot Nothing Then
-            pbImage.Image = entry.PreviewBitmap
+        ' 图片预览：从导出的 PNG 文件加载（避免使用已释放的 GDI+ 位图）
+        If entry.Category = AssetCategory.Texture Then
+            Dim loaded = False
+            If entry.ExtractedPath <> "" AndAlso File.Exists(entry.ExtractedPath) Then
+                Try
+                    Dim bytes = File.ReadAllBytes(entry.ExtractedPath)
+                    Dim ms As New MemoryStream(bytes)
+                    SetPreviewImage(Image.FromStream(ms), ms)
+                    loaded = True
+                Catch
+                    loaded = False
+                End Try
+            End If
+            If Not loaded Then
+                SetPreviewImage(Nothing, Nothing)
+            End If
             Dim dimInfo = If(entry.StructuredInfo IsNot Nothing, FindKV(entry.StructuredInfo, "尺寸"), "")
-            lblImageInfo.Text = entry.Name & "   " & dimInfo & "   " & If(entry.WasRawFallback, "（未支持格式·已存原始）", "")
+            lblImageInfo.Text = entry.Name & "   " & dimInfo & "   " &
+                                If(entry.WasRawFallback, "（未支持格式·已存原始）", "") &
+                                If(Not loaded, "（无可视化预览）", "")
             tcPreview.SelectedTab = tpImage
         ElseIf (entry.Category = AssetCategory.Text OrElse entry.Category = AssetCategory.Script OrElse
                 entry.Category = AssetCategory.Shader) AndAlso entry.PreviewText IsNot Nothing Then
