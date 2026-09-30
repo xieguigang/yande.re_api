@@ -1,4 +1,4 @@
-﻿UnityViewer 自测报告  2026-09-30 13:55:38
+﻿UnityViewer 自测报告  2026-09-30 14:26:45
 ========================================
 扫描: Z:\klsdzj_4.15.1_20190428_025416_686ef
   [诊断] assets/Android 资源包抽查：
@@ -8,7 +8,7 @@
     OK  accessory_prefabs_acc@archer_6_22_back 块=1 项=1 数据=200964
     OK  accessory_prefabs_acc@archer_6_23 块=1 项=1 数据=365000
     小计: 5/5 成功
-  来源数: 104, 资源数: 331, 耗时 4459ms
+  来源数: 104, 资源数: 331, 耗时 4645ms
     - globalgamemanagers.assets: 2 个资源
     - sharedassets0.assets: 12 个资源
     - accessory_prefabs_acc@cos_event_pa_4_wargame_2: 2 个资源
@@ -114,7 +114,7 @@
     - textures_ui: 3 个资源
     - ui_boostmode: 1 个资源
   类别分布: Script=28  Texture=112  Shader=18  Audio=2  Animation=171  
-  抽样提取(每类≤40): 成功可视化 63, 原始回退 65, 失败 0
+  抽样提取(每类≤40): 成功可视化 240, 原始回退 91, 失败 0
     sharedassets0.assets / Shader #10: Shader 为编译后压缩 blob，已保存原始字节用于重建。
     sharedassets0.assets / Shader #11: Shader 为编译后压缩 blob，已保存原始字节用于重建。
     sharedassets0.assets / Shader #12: Shader 为编译后压缩 blob，已保存原始字节用于重建。
@@ -128,17 +128,17 @@
     accessory_textures_limited_gg / CAB-cca0153dd3ac9afa636f78cca0d345f8 / Texture2D #281956013047808: 纹理对象数据过短
     accessory_textures_npc / CAB-90aeb8ba26e089f4e0b6ed9c023d77e7 / Texture2D #366026089247985193: 纹理格式 RFloat 暂未实现可视化解码；已保存原始数据，可用于重建。
     bg_sunshine / CAB-b6ca1ec148aa95411fa6d79277d11f11 / Shader #-6552542568618160585: Shader 为编译后压缩 blob，已保存原始字节用于重建。
-    cutscenelegacyanimclip_animrb / CAB-c31f68219aa57578c048345c0a7d57d8 / AnimationClip #276149217263616: The array starting from the specified index is not long enough to read a value of the specified type. (Parameter 'value')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-8315652009266303279: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-6590741574426922894: The array starting from the specified index is not long enough to read a value of the specified type. (Parameter 'value')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-4822719529574135574: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-3444133651807787867: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-3107638678686437053: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-1462980391500334883: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #-602353280357806424: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #1269906520315778492: The array starting from the specified index is not long enough to read a value of the specified type. (Parameter 'value')
-    cutscenelegacyanimclip_animsoul / CAB-743e2bb9afe2ae56c26d652bbb8cdc22 / AnimationClip #4498154799151997754: The array starting from the specified index is not long enough to read a value of the specified type. (Parameter 'value')
-    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-7630678155876301012: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
-    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-7150251260325791500: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'startIndex')
+    cutscenelegacyanimclip_animrb / CAB-c31f68219aa57578c048345c0a7d57d8 / AnimationClip #276149217263616: 动画对象数据过短
+    cutscenelegacytextures_s2_ep1 / CAB-ca202dd90b4fd69b1b643d1b6f982b65 / Texture2D #3930874764626644309: 纹理格式 RFloat 暂未实现可视化解码；已保存原始数据，可用于重建。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-2876960924151153027: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_004 / CAB-0b2270ae27ab668c6df6fba36fe89f92 / AnimationClip #-1834554325626656602: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_005 / CAB-bbe49e39f7e55bdeb7d0140f2558c364 / AnimationClip #-554306907798433332: 部分字段解析未完成（scale 路径）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_007 / CAB-c4319a46a8ee4f90ee06216e0302439f / AnimationClip #-644952917564131859: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_007 / CAB-c4319a46a8ee4f90ee06216e0302439f / AnimationClip #8989077875157665861: 部分字段解析未完成（float 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_008_01 / CAB-0a10cc78b781989b0bcd6f3476bb6abd / AnimationClip #-8743271517669409972: 部分字段解析未完成（rot 路径）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_008_01 / CAB-0a10cc78b781989b0bcd6f3476bb6abd / AnimationClip #-1175840881253426554: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_008_01 / CAB-0a10cc78b781989b0bcd6f3476bb6abd / AnimationClip #2032401182263238083: 部分字段解析未完成（rot 路径）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_008_01 / CAB-0a10cc78b781989b0bcd6f3476bb6abd / AnimationClip #3066210551375754182: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
+    cutscene_resource_book_008_01 / CAB-0a10cc78b781989b0bcd6f3476bb6abd / AnimationClip #3139086326757496031: 部分字段解析未完成（PPtr 轨道数异常）；已保存 JSON 摘要与原始 clip 数据。
 
 报告已写入: Z:\tmp\UnityViewer_selftest.txt

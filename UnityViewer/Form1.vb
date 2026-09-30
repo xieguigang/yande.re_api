@@ -123,10 +123,10 @@ Public Class Form1
         tvAssets.Nodes.Clear()
         catalogs.Clear()
 
-        Dim task As Task(Of List(Of AssetCatalog)) = Task.Run(Function()
-                                                                  Return AssetScanner.ScanFolder(root)
-                                                              End Function)
-        task.ContinueWith(Sub(t)
+        Dim scanTask As Task(Of List(Of AssetCatalog)) = Task.Run(Function()
+                                                                      Return AssetScanner.ScanFolder(root)
+                                                                  End Function)
+        scanTask.ContinueWith(Sub(t)
                               Try
                                   Dim result = t.Result
                                   Me.Invoke(Sub() OnScanComplete(result, root))
@@ -330,7 +330,7 @@ Public Class Form1
         tspb.Style = ProgressBarStyle.Continuous
         tspb.Minimum = 0 : tspb.Maximum = all.Count : tspb.Value = 0
 
-        Dim task As Task = Task.Run(Sub()
+        Dim exportTask As Task = Task.Run(Sub()
                                         For i = 0 To all.Count - 1
                                             Try
                                                 AssetExtractors.Extract(all(i), outputDir)
@@ -343,7 +343,7 @@ Public Class Form1
                                                       End Sub)
                                         Next
                                     End Sub)
-        task.ContinueWith(Sub()
+        exportTask.ContinueWith(Sub()
                               Me.Invoke(Sub()
                                             scanRunning = False
                                             SetButtonsEnabled(True)

@@ -320,30 +320,23 @@ Public Module AssetExtractors
             compressed = objBytes(pos + 1) <> 0
             pos = (pos + 3 + 3) And Not 3
 
-            rotCount = ReadCurveGroup(objBytes, pos, tracks, "rot")
-            eulerCount = ReadCurveGroup(objBytes, pos, tracks, "euler")
-            posCount = ReadCurveGroup(objBytes, pos, tracks, "pos")
-            scaleCount = ReadCurveGroup(objBytes, pos, tracks, "scale")
+            rotCount = ReadCurveGroup(objBytes, pos, tracks, "rot", 56)     ' Quaternion 关键帧
+            eulerCount = ReadCurveGroup(objBytes, pos, tracks, "euler", 44) ' Vector3 关键帧
+            posCount = ReadCurveGroup(objBytes, pos, tracks, "pos", 44)
+            scaleCount = ReadCurveGroup(objBytes, pos, tracks, "scale", 44)
             floatCount = ReadFloatCurveGroup(objBytes, pos, tracks)
 
-            ' PPtrCurves: { path, curve{ 关键帧(float time + PPtr(12字节)) = 16字节, pre, post } }
+            ' PPtrCurves: { curve{ keyCount, 关键帧×16字节(time+PPtr), pre, post }, path }
             pptrCount = ReadIntAt(objBytes, pos) : pos += 4
             If pptrCount < 0 OrElse pptrCount > 10000 Then Throw New InvalidDataException("PPtr 轨道数异常")
             For i = 0 To pptrCount - 1
-                If TryReadLenString(objBytes, pos) Is Nothing Then Throw New InvalidDataException("PPtr 路径")
                 SkipPPtrCurve(objBytes, pos)
+                If TryReadLenString(objBytes, pos) Is Nothing Then Throw New InvalidDataException("PPtr 路径")
             Next
 
             sampleRate = ReadFloatAt(objBytes, pos)
         Catch ex As Exception
             parseError = ex.Message
-            If Environment.GetEnvironmentVariable("UV_DBG") = "1" Then
-                Dim s As String = "DBG anim '" & name & "' failAt=" & pos & " rot=" & rotCount & " euler=" & eulerCount & " pos=" & posCount & " scale=" & scaleCount & " float=" & floatCount & vbCrLf & "  HEAD: "
-                For i = 0 To Math.Min(objBytes.Length - 1, 255)
-                    s &= objBytes(i).ToString("X2") & " "
-                Next
-                Console.Error.WriteLine(s)
-            End If
         End Try
 
         ' ---- JSON 摘要 ----
@@ -390,24 +383,27 @@ Public Module AssetExtractors
         Return True
     End Function
 
-    ''' <summary>轨道组：{ path(len+对齐), curve{ keyCount, 关键帧×16字节, pre/postInfinity } }。</summary>
-    Private Function ReadCurveGroup(bytes() As Byte, ByRef pos As Integer, tracks As List(Of String), prefix As String) As Integer
+    ''' <summary>
+    ''' 轨道组：{ curve{ keyCount, 关键帧×keyStride 字节, preInfinity, postInfinity }, path(len+对齐) }。
+    ''' 实测曲线在前、path 在后。Vector3 关键帧 = 44 字节，Quaternion = 56 字节，float = 20 字节。
+    ''' </summary>
+    Private Function ReadCurveGroup(bytes() As Byte, ByRef pos As Integer, tracks As List(Of String), prefix As String, keyStride As Integer) As Integer
         Dim count = ReadIntAt(bytes, pos) : pos += 4
         If count < 0 OrElse count > 10000 Then Throw New InvalidDataException(prefix & " 轨道数异常")
         For i = 0 To count - 1
+            Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
+            If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException(prefix & " 关键帧数异常")
+            If pos + keyCount * keyStride + 8 > bytes.Length Then Throw New InvalidDataException(prefix & " 关键帧越界")
+            pos += keyCount * keyStride
+            pos += 8 ' preInfinity + postInfinity
             Dim path = TryReadLenString(bytes, pos)
             If path Is Nothing Then Throw New InvalidDataException(prefix & " 路径")
             If path <> "" Then tracks.Add(prefix & ": " & path)
-            Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
-            If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException(prefix & " 关键帧数异常")
-            If pos + keyCount * 20 + 8 > bytes.Length Then Throw New InvalidDataException(prefix & " 关键帧越界")
-            pos += keyCount * 20 ' time/value/inSlope/outSlope/tangentMode
-            pos += 8             ' preInfinity + postInfinity
         Next
         Return count
     End Function
 
-    ''' <summary>浮点轨道组（5.6）：{ curve{...}, path, attribute, classID, script(PPtr) }。</summary>
+    ''' <summary>浮点轨道组：{ curve{ keyCount, 关键帧×20, pre, post }, path, attribute, classID, script(PPtr) }。</summary>
     Private Function ReadFloatCurveGroup(bytes() As Byte, ByRef pos As Integer, tracks As List(Of String)) As Integer
         Dim count = ReadIntAt(bytes, pos) : pos += 4
         If count < 0 OrElse count > 10000 Then Throw New InvalidDataException("float 轨道数异常")
@@ -427,7 +423,7 @@ Public Module AssetExtractors
         Return count
     End Function
 
-    ''' <summary>PPtr 轨道曲线：{ keyCount, 关键帧×16字节(time+PPtr), pre/postInfinity }。</summary>
+    ''' <summary>PPtr 轨道曲线：{ keyCount, 关键帧×16字节(time+PPtr), pre/postInfinity }（曲线在前，path 由调用方读取）。</summary>
     Private Sub SkipPPtrCurve(bytes() As Byte, ByRef pos As Integer)
         Dim keyCount = ReadIntAt(bytes, pos) : pos += 4
         If keyCount < 0 OrElse keyCount > 200000 Then Throw New InvalidDataException("PPtr 关键帧数异常")
