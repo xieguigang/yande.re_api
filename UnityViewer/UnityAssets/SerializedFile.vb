@@ -41,7 +41,22 @@ Public Class SerializedFile
     End Function
 
     Public Shared Function LoadFromBundleEntry(entry As BundleEntry, bundle As UnityFSBundle, sourcePath As String) As SerializedFile
-        Dim sf = LoadFromBytes(entry.Data, sourcePath)
+        Dim data = entry.Data
+        Dim sf = LoadFromBytes(data, sourcePath)
+
+        ' Unity 有时将对象数据延伸到本 entry 之后的数据区（同一解压数据流的后续部分），
+        ' 此时用从 entry.Offset 起到数据区末尾的扩展视图重新解析。
+        Dim overflow = False
+        For Each obj In sf.Objects
+            If obj.Offset + obj.Length > data.Length Then overflow = True : Exit For
+        Next
+        If overflow AndAlso bundle.ArchiveData IsNot Nothing AndAlso bundle.ArchiveData.Length > entry.Offset + data.Length Then
+            Dim extLen = bundle.ArchiveData.Length - CInt(entry.Offset)
+            Dim ext(extLen - 1) As Byte
+            Array.Copy(bundle.ArchiveData, entry.Offset, ext, 0, extLen)
+            sf = LoadFromBytes(ext, sourcePath)
+        End If
+
         sf.ExternalResolver = Function(name As String) ResolveBundleResource(bundle, name)
         Return sf
     End Function

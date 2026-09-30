@@ -119,7 +119,7 @@ Module SelfTest
         For Each c In catalogs
             For Each e In c.Entries
                 If Not perCatDone.ContainsKey(e.Category) Then perCatDone.Add(e.Category, 0)
-                If perCatDone(e.Category) >= 40 Then Continue For
+                If perCatDone(e.Category) >= 100000 Then Continue For
                 perCatDone(e.Category) += 1
                 Try
                     Dim ok = AssetExtractors.Extract(e, outDir)
