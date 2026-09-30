@@ -1,1 +1,0 @@
-# Finance data modelling & analysis
