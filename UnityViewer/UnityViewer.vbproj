@@ -5,7 +5,6 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <StartupObject>Program</StartupObject>
     <UseWindowsForms>true</UseWindowsForms>
-    <MyType>WindowsForms</MyType>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
